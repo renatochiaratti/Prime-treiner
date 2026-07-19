@@ -48,4 +48,15 @@ export default function CoachLoginPage() {
               value={email}
               onChange={(e) => setEmail(e.target.value)}
               className="px-3 py-3 rounded-xl text-sm font-semibold"
-              style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0
+              style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+            />
+            {error && <div className="text-xs" style={{ color: "#ef4444" }}>{error}</div>}
+            <button type="submit" disabled={loading} className="btn btn-gold">
+              {loading ? "Enviando..." : "Enviar link de acesso"}
+            </button>
+          </form>
+        )}
+      </div>
+    </div>
+  );
+}
