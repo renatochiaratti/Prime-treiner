@@ -69,4 +69,88 @@ export default function CoachDashboard() {
     setCreating(false);
     setShowNew(false);
     setNewName("");
-    router.push(
+    router.push(`/coach/${athlete.id}`);
+  }
+
+  async function handleLogout() {
+    await supabase.auth.signOut();
+    router.replace("/");
+  }
+
+  if (loading) {
+    return (
+      <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>
+        Carregando...
+      </div>
+    );
+  }
+
+  return (
+    <div className="app-shell px-5 py-6">
+      <div className="flex items-center justify-between mb-6">
+        <h1 className="text-white font-extrabold text-xl">Seus Alunos</h1>
+        <button onClick={handleLogout} className="btn" style={{ padding: "6px 12px", fontSize: 12.5 }}>
+          Sair
+        </button>
+      </div>
+
+      <div className="card overflow-hidden mb-4">
+        {athletes.length === 0 && (
+          <div className="p-5 text-sm" style={{ color: "#6c6c72" }}>
+            Nenhum aluno cadastrado ainda.
+          </div>
+        )}
+        {athletes.map((a, i) => (
+          <button
+            key={a.id}
+            onClick={() => router.push(`/coach/${a.id}`)}
+            className="w-full flex items-center gap-3 px-4 py-3 text-left"
+            style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}
+          >
+            <div
+              className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
+              style={{ width: 36, height: 36, fontSize: 13, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
+            >
+              {initials(a.name)}
+            </div>
+            <div className="flex-1 font-bold text-[14.5px] text-white">{a.name}</div>
+            <div style={{ color: "#6c6c72" }}>›</div>
+          </button>
+        ))}
+      </div>
+
+      {showNew ? (
+        <div className="card p-4">
+          <input
+            autoFocus
+            placeholder="Nome do aluno"
+            value={newName}
+            onChange={(e) => setNewName(e.target.value)}
+            className="w-full px-3 py-2 rounded-lg text-sm font-semibold mb-3"
+            style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+          />
+          <div className="flex gap-2">
+            <button onClick={() => setShowNew(false)} className="btn flex-1" style={{ background: "transparent" }}>
+              Cancelar
+            </button>
+            <button onClick={handleCreateAthlete} disabled={creating} className="btn btn-gold flex-1">
+              {creating ? "Criando..." : "Criar perfil"}
+            </button>
+          </div>
+        </div>
+      ) : (
+        <button
+          onClick={() => setShowNew(true)}
+          className="w-full py-3 rounded-xl text-sm font-bold"
+          style={{ border: "1.5px dashed rgba(255,255,255,0.16)", color: "#9a9a9f" }}
+        >
+          + Novo aluno
+        </button>
+      )}
+    </div>
+  );
+}
+
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
