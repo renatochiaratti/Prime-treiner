@@ -46,7 +46,7 @@ export default function CoachDashboard() {
       .single();
 
     if (error || !athlete) {
-      alert("Não deu pra criar o aluno. Tente novamente.");
+      alert("Não deu pra criar o aluno.\n\nErro: " + (error?.message || "desconhecido"));
       setCreating(false);
       return;
     }
@@ -101,56 +101,4 @@ export default function CoachDashboard() {
           </div>
         )}
         {athletes.map((a, i) => (
-          <button
-            key={a.id}
-            onClick={() => router.push(`/coach/${a.id}`)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left"
-            style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}
-          >
-            <div
-              className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
-              style={{ width: 36, height: 36, fontSize: 13, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
-            >
-              {initials(a.name)}
-            </div>
-            <div className="flex-1 font-bold text-[14.5px] text-white">{a.name}</div>
-            <div style={{ color: "#6c6c72" }}>›</div>
-          </button>
-        ))}
-      </div>
-
-      {showNew ? (
-        <div className="card p-4">
-          <input
-            autoFocus
-            placeholder="Nome do aluno"
-            value={newName}
-            onChange={(e) => setNewName(e.target.value)}
-            className="w-full px-3 py-2 rounded-lg text-sm font-semibold mb-3"
-            style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
-          />
-          <div className="flex gap-2">
-            <button onClick={() => setShowNew(false)} className="btn flex-1" style={{ background: "transparent" }}>
-              Cancelar
-            </button>
-            <button onClick={handleCreateAthlete} disabled={creating} className="btn btn-gold flex-1">
-              {creating ? "Criando..." : "Criar perfil"}
-            </button>
-          </div>
-        </div>
-      ) : (
-        <button
-          onClick={() => setShowNew(true)}
-          className="w-full py-3 rounded-xl text-sm font-bold"
-          style={{ border: "1.5px dashed rgba(255,255,255,0.16)", color: "#9a9a9f" }}
-        >
-          + Novo aluno
-        </button>
-      )}
-    </div>
-  );
-}
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
+          
