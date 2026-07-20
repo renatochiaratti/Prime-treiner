@@ -131,6 +131,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable />
         ) : (
           <MovementTable
+            key={tab}
             athleteId={athlete.id}
             categoria={tab}
             initialRows={movementRows.filter((r) => r.categoria === tab)}
