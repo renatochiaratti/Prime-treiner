@@ -67,6 +67,13 @@ export function weekdayName(dateStr: string | null): string {
   return WEEKDAY_NAMES[d.getDay()];
 }
 
+export function dayNumber(dateStr: string | null): string {
+  if (!dateStr) return "";
+  const d = new Date(dateStr + "T00:00:00");
+  if (isNaN(d.getTime())) return "";
+  return String(d.getDate());
+}
+
 function toNum(v: string | null | undefined): number | null {
   if (!v) return null;
   const m = String(v).replace(",", ".").match(/-?\d+(\.\d+)?/);
