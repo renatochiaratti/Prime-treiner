@@ -127,6 +127,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
         ) : (
           <MovementTable
+            key={tab}
             athleteId={athlete.id}
             categoria={tab}
             initialRows={movementRows.filter((r) => r.categoria === tab)}
