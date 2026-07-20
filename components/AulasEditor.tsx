@@ -2,7 +2,7 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import { weekdayName } from "@/lib/movementLibrary";
+import { weekdayName, dayNumber } from "@/lib/movementLibrary";
 import type { Aula } from "@/lib/types";
 
 const NEXT_STATUS: Record<Aula["status"], Aula["status"]> = {
@@ -76,14 +76,22 @@ export default function AulasEditor({
             className="grid items-center gap-2 px-3.5 py-2.5 text-[13.5px]"
             style={{ gridTemplateColumns: "60px 76px 62px 82px 1fr 20px", borderTop: "1px solid rgba(255,255,255,0.09)", minWidth: 480 }}
           >
-            <input
-              type="date"
-              value={aula.data || ""}
-              disabled={!editable}
-              onChange={(e) => updateField(aula, "data", e.target.value)}
-              className="bg-transparent border-none font-bold text-[12px]"
-              style={{ color: "#f2f2f0", colorScheme: "dark" }}
-            />
+            <div className="relative" style={{ width: 40, height: 22 }}>
+              <span
+                className="font-bold text-[12px] pointer-events-none"
+                style={{ color: "#f2f2f0" }}
+              >
+                {dayNumber(aula.data) || "—"}
+              </span>
+              <input
+                type="date"
+                value={aula.data || ""}
+                disabled={!editable}
+                onChange={(e) => updateField(aula, "data", e.target.value)}
+                className="absolute inset-0 border-none font-bold text-[12px]"
+                style={{ color: "#f2f2f0", colorScheme: "dark", opacity: 0, width: "100%", height: "100%" }}
+              />
+            </div>
             <span className="font-extrabold text-[12.5px]" style={{ color: "#d4af37" }}>{weekdayName(aula.data) || "—"}</span>
             <input
               type="time"
