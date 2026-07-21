@@ -25,7 +25,19 @@ export default function PagamentosTable({
 
   async function updateValor(p: Pagamento, valor: string) {
     const num = parseFloat(valor.replace(",", ".")) || 0;
+    setPagamentos((prev) => prev.map((x) => (x.id === p.id ? { ...x, valor: num } : x)));
     await supabase.from("pagamentos").update({ valor: num }).eq("id", p.id);
+  }
+
+  async function updateMes(p: Pagamento, mes: string) {
+    setPagamentos((prev) => prev.map((x) => (x.id === p.id ? { ...x, mes } : x)));
+    await supabase.from("pagamentos").update({ mes }).eq("id", p.id);
+  }
+
+  async function updateVencimento(p: Pagamento, vencimento: string) {
+    const value = vencimento || null;
+    setPagamentos((prev) => prev.map((x) => (x.id === p.id ? { ...x, vencimento: value } : x)));
+    await supabase.from("pagamentos").update({ vencimento: value }).eq("id", p.id);
   }
 
   return (
@@ -42,7 +54,7 @@ export default function PagamentosTable({
         <table className="w-full text-[13.5px] border-collapse">
           <thead>
             <tr style={{ background: "#1f2024" }}>
-              {["Nº", "Mês", "Valor", "Status"].map((h) => (
+              {["Nº", "Mês", "Vencimento", "Valor", "Status"].map((h) => (
                 <th key={h} className="text-left text-[10px] uppercase font-extrabold px-3 py-2.5" style={{ color: "#6c6c72", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   {h}
                 </th>
@@ -53,7 +65,25 @@ export default function PagamentosTable({
             {pagamentos.map((p, i) => (
               <tr key={p.id}>
                 <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>{i + 1}º</td>
-                <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>{p.mes}</td>
+                <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+                  <input
+                    defaultValue={p.mes}
+                    disabled={!editable}
+                    onBlur={(e) => updateMes(p, e.target.value)}
+                    className="bg-transparent border-none font-bold w-24"
+                    style={{ color: "#f2f2f0" }}
+                  />
+                </td>
+                <td className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+                  <input
+                    type="date"
+                    defaultValue={p.vencimento || ""}
+                    disabled={!editable}
+                    onBlur={(e) => updateVencimento(p, e.target.value)}
+                    className="bg-transparent border-none font-bold"
+                    style={{ color: "#f2f2f0", colorScheme: "dark" }}
+                  />
+                </td>
                 <td className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   <input
                     defaultValue={p.valor}
