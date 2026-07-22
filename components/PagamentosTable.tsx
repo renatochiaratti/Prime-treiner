@@ -89,7 +89,7 @@ export default function PagamentosTable({
       </p>
 
       <div className="card overflow-hidden" style={{ overflowX: "auto" }}>
-        <table className="w-full text-[13.5px] border-collapse" style={{ minWidth: 560 }}>
+        <table className="w-full text-[13.5px] border-collapse" style={{ minWidth: 600 }}>
           <thead>
             <tr style={{ background: "#1f2024" }}>
               {["Mês", "Aulas", "Vencimento", "Valor", "Status"].map((h) => (
@@ -112,31 +112,35 @@ export default function PagamentosTable({
                   />
                 </td>
                 <td className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
-                  <div className="flex gap-1 flex-wrap" style={{ maxWidth: 132 }}>
+                  <div className="flex gap-1.5 flex-wrap" style={{ maxWidth: 150 }}>
                     {getAulas(p).map((slot, idx) => (
-                      <div
-                        key={idx}
-                        onClick={() => cycleAula(p, idx)}
-                        className="rounded flex items-center justify-center"
-                        style={{
-                          width: 22,
-                          height: 22,
-                          background: AULA_COLOR[slot.status],
-                          cursor: editable ? "pointer" : "default",
-                          flexShrink: 0,
-                        }}
-                        title="Clique pra alternar: marcada → feita → não feita"
-                      >
+                      <div key={idx} style={{ width: 26 }}>
+                        <div
+                          onClick={() => cycleAula(p, idx)}
+                          style={{
+                            height: 8,
+                            borderRadius: 3,
+                            background: AULA_COLOR[slot.status],
+                            cursor: editable ? "pointer" : "default",
+                            marginBottom: 3,
+                          }}
+                          title="Clique pra alternar: amarelo (marcada) → verde (feita) → vermelho (não feita)"
+                        />
                         <input
                           value={slot.dia}
                           disabled={!editable}
                           maxLength={2}
                           inputMode="numeric"
-                          onClick={(e) => e.stopPropagation()}
                           onChange={(e) => updateAulaDia(p, idx, e.target.value)}
                           placeholder="—"
-                          className="bg-transparent border-none text-center font-extrabold w-full"
-                          style={{ color: "#0d0d0d", fontSize: 10.5 }}
+                          className="text-center font-extrabold w-full rounded"
+                          style={{
+                            color: "#f2f2f0",
+                            fontSize: 11,
+                            background: "#1f2024",
+                            border: "1px solid rgba(255,255,255,0.14)",
+                            padding: "2px 0",
+                          }}
                         />
                       </div>
                     ))}
