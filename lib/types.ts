@@ -63,13 +63,20 @@ export interface Mensagem {
   created_at: string;
 }
 
+export interface AulaSlot {
+  dia: string;
+  status: "marcada" | "feita" | "nao_feita";
+}
+
 export interface Pagamento {
   id: string;
   athlete_id: string;
+  position: number;
   mes: string;
   vencimento: string | null;
   valor: number;
   status: "pago" | "pendente";
+  aulas: AulaSlot[] | null;
 }
 
 export const DAYS: { key: ExtraBloco["dia"]; label: string }[] = [
