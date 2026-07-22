@@ -49,7 +49,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         supabase.from("extras_blocos").select("*, extras_exercicios(*)").eq("athlete_id", params.athleteId).order("position"),
         supabase.from("aulas").select("*").eq("athlete_id", params.athleteId).order("data"),
         supabase.from("mensagens").select("*").eq("athlete_id", params.athleteId).order("created_at", { ascending: false }),
-        supabase.from("pagamentos").select("*").eq("athlete_id", params.athleteId),
+        supabase.from("pagamentos").select("*").eq("athlete_id", params.athleteId).order("position", { ascending: true }),
       ]);
 
       setObjetivos((obj as Objetivo[]) || []);
@@ -131,7 +131,6 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable />
         ) : (
           <MovementTable
-            key={tab}
             athleteId={athlete.id}
             categoria={tab}
             initialRows={movementRows.filter((r) => r.categoria === tab)}
