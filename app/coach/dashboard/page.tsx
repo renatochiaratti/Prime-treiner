@@ -77,7 +77,7 @@ export default function CoachDashboard() {
     await supabase.from("objetivos").insert({ athlete_id: athlete.id, text: "Melhorar o condicionamento geral", position: 0 });
     const meses = ["Janeiro","Fevereiro","Março","Abril","Maio","Junho","Julho","Agosto","Setembro","Outubro","Novembro","Dezembro"];
     await supabase.from("pagamentos").insert(
-      meses.map((mes) => ({ athlete_id: athlete.id, mes, valor: 550, status: "pendente" }))
+      meses.map((mes, position) => ({ athlete_id: athlete.id, mes, valor: 550, status: "pendente", position }))
     );
 
     setCreating(false);
