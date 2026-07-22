@@ -2,7 +2,26 @@
 
 import { useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { Pagamento } from "@/lib/types";
+import type { AulaSlot, Pagamento } from "@/lib/types";
+
+const AULA_COLOR: Record<AulaSlot["status"], string> = {
+  marcada: "#eab308",
+  feita: "#22c55e",
+  nao_feita: "#ef4444",
+};
+const NEXT_AULA_STATUS: Record<AulaSlot["status"], AulaSlot["status"]> = {
+  marcada: "feita",
+  feita: "nao_feita",
+  nao_feita: "marcada",
+};
+
+function emptyAulas(): AulaSlot[] {
+  return Array.from({ length: 8 }, () => ({ dia: "", status: "marcada" as const }));
+}
+
+function getAulas(p: Pagamento): AulaSlot[] {
+  return p.aulas && p.aulas.length === 8 ? p.aulas : emptyAulas();
+}
 
 export default function PagamentosTable({
   initialPagamentos,
@@ -40,6 +59,25 @@ export default function PagamentosTable({
     await supabase.from("pagamentos").update({ vencimento: value }).eq("id", p.id);
   }
 
+  async function persistAulas(p: Pagamento, aulas: AulaSlot[]) {
+    setPagamentos((prev) => prev.map((x) => (x.id === p.id ? { ...x, aulas } : x)));
+    await supabase.from("pagamentos").update({ aulas }).eq("id", p.id);
+  }
+
+  function cycleAula(p: Pagamento, idx: number) {
+    if (!editable) return;
+    const aulas = getAulas(p).slice();
+    aulas[idx] = { ...aulas[idx], status: NEXT_AULA_STATUS[aulas[idx].status] };
+    persistAulas(p, aulas);
+  }
+
+  function updateAulaDia(p: Pagamento, idx: number, dia: string) {
+    const clean = dia.replace(/\D/g, "").slice(0, 2);
+    const aulas = getAulas(p).slice();
+    aulas[idx] = { ...aulas[idx], dia: clean };
+    persistAulas(p, aulas);
+  }
+
   return (
     <div>
       <h2 className="text-white font-extrabold text-[17px] mb-1 flex items-center gap-2">
@@ -50,11 +88,11 @@ export default function PagamentosTable({
         Início: {fmtDate(cycleStart)} · Término: {fmtDate(cycleEnd)} · 12 meses
       </p>
 
-      <div className="card overflow-hidden">
-        <table className="w-full text-[13.5px] border-collapse">
+      <div className="card overflow-hidden" style={{ overflowX: "auto" }}>
+        <table className="w-full text-[13.5px] border-collapse" style={{ minWidth: 560 }}>
           <thead>
             <tr style={{ background: "#1f2024" }}>
-              {["Nº", "Mês", "Vencimento", "Valor", "Status"].map((h) => (
+              {["Mês", "Aulas", "Vencimento", "Valor", "Status"].map((h) => (
                 <th key={h} className="text-left text-[10px] uppercase font-extrabold px-3 py-2.5" style={{ color: "#6c6c72", borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   {h}
                 </th>
@@ -62,9 +100,8 @@ export default function PagamentosTable({
             </tr>
           </thead>
           <tbody>
-            {pagamentos.map((p, i) => (
+            {pagamentos.map((p) => (
               <tr key={p.id}>
-                <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>{i + 1}º</td>
                 <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   <input
                     defaultValue={p.mes}
@@ -73,6 +110,37 @@ export default function PagamentosTable({
                     className="bg-transparent border-none font-bold w-24"
                     style={{ color: "#f2f2f0" }}
                   />
+                </td>
+                <td className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
+                  <div className="flex gap-1 flex-wrap" style={{ maxWidth: 132 }}>
+                    {getAulas(p).map((slot, idx) => (
+                      <div
+                        key={idx}
+                        onClick={() => cycleAula(p, idx)}
+                        className="rounded flex items-center justify-center"
+                        style={{
+                          width: 22,
+                          height: 22,
+                          background: AULA_COLOR[slot.status],
+                          cursor: editable ? "pointer" : "default",
+                          flexShrink: 0,
+                        }}
+                        title="Clique pra alternar: marcada → feita → não feita"
+                      >
+                        <input
+                          value={slot.dia}
+                          disabled={!editable}
+                          maxLength={2}
+                          inputMode="numeric"
+                          onClick={(e) => e.stopPropagation()}
+                          onChange={(e) => updateAulaDia(p, idx, e.target.value)}
+                          placeholder="—"
+                          className="bg-transparent border-none text-center font-extrabold w-full"
+                          style={{ color: "#0d0d0d", fontSize: 10.5 }}
+                        />
+                      </div>
+                    ))}
+                  </div>
                 </td>
                 <td className="px-3 py-2.5" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   <input
@@ -103,6 +171,12 @@ export default function PagamentosTable({
           </tbody>
         </table>
       </div>
+
+      {editable && (
+        <p className="text-[13px] mt-3" style={{ color: "#9a9a9f" }}>
+          Nas aulas: clique no quadrado pra alternar amarelo (marcada) → verde (feita) → vermelho (não feita), e digite o dia no campinho.
+        </p>
+      )}
 
       <div className="text-center py-5 mt-2" style={{ borderTop: "1px solid rgba(255,255,255,0.09)" }}>
         <div className="text-[13px] mb-1" style={{ color: "#9a9a9f" }}>Compromisso, consistência e disciplina são o que constroem resultados.</div>
