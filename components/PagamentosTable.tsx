@@ -78,6 +78,13 @@ export default function PagamentosTable({
     persistAulas(p, aulas);
   }
 
+  // Ordena por vencimento (cronológico). Pagamentos sem vencimento vão pro final.
+  const sortedPagamentos = [...pagamentos].sort((a, b) => {
+    if (!a.vencimento) return 1;
+    if (!b.vencimento) return -1;
+    return a.vencimento.localeCompare(b.vencimento);
+  });
+
   return (
     <div>
       <h2 className="text-white font-extrabold text-[17px] mb-1 flex items-center gap-2">
@@ -100,7 +107,7 @@ export default function PagamentosTable({
             </tr>
           </thead>
           <tbody>
-            {pagamentos.map((p) => (
+            {sortedPagamentos.map((p) => (
               <tr key={p.id}>
                 <td className="px-3 py-2.5 font-bold" style={{ borderBottom: "1px solid rgba(255,255,255,0.09)" }}>
                   <input
