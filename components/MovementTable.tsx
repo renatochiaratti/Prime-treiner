@@ -159,8 +159,12 @@ function Row({
       ))}
       {pct !== null ? (
         <div className="flex items-center gap-1">
-          <div className={`mark-bar flex-1 ${done ? "done" : ""}`}><i style={{ width: `${pct}%` }} /></div>
-          {done && <span style={{ color: "#22c55e", fontSize: 12 }}>✔</span>}
+          <div className={`mark-bar flex-1 ${done ? "done" : ""}`}><i style={{ width: `${Math.max(pct, 2)}%` }} /></div>
+          {done ? (
+            <span style={{ color: "#22c55e", fontSize: 12 }}>✔</span>
+          ) : (
+            <span style={{ color: "#6c6c72", fontSize: 9.5, minWidth: 22, textAlign: "right" }}>{Math.round(pct)}%</span>
+          )}
         </div>
       ) : (
         <div className="text-center font-bold" style={{ fontSize: 10.5, color: "#6c6c72" }}>—</div>
