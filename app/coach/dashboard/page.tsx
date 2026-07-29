@@ -114,9 +114,27 @@ export default function CoachDashboard() {
     <div className="app-shell px-5 py-6">
       <div className="flex items-center justify-between mb-6">
         <h1 className="text-white font-extrabold text-xl">Seus Alunos</h1>
-        <button onClick={handleLogout} className="btn" style={{ padding: "6px 12px", fontSize: 12.5 }}>
-          Sair
-        </button>
+        <div className="flex items-center gap-2">
+          <button
+            onClick={() => router.push("/coach/rcp")}
+            title="Método RCP"
+            className="rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              width: 38,
+              height: 38,
+              background: "#a3e635",
+              color: "#1a2e05",
+              fontSize: 18,
+              boxShadow: "0 0 0 4px rgba(163,230,53,0.18)",
+              border: "none",
+            }}
+          >
+            👑
+          </button>
+          <button onClick={handleLogout} className="btn" style={{ padding: "6px 12px", fontSize: 12.5 }}>
+            Sair
+          </button>
+        </div>
       </div>
 
       <div className="card overflow-hidden mb-4">
