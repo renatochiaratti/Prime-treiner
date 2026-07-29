@@ -88,3 +88,31 @@ export const DAYS: { key: ExtraBloco["dia"]; label: string }[] = [
   { key: "sab", label: "Sábado" },
   { key: "dom", label: "Domingo" },
 ];
+
+export interface RcpAthlete {
+  id: string;
+  name: string;
+  grupo_trio: string | null;
+  share_token: string;
+  created_at: string;
+}
+
+export interface RcpLoadTracking {
+  id: string;
+  athlete_id: string;
+  exercicio: string;
+  semana: number;
+  carga: string;
+  created_at: string;
+}
+
+export interface RcpAssessment {
+  id: string;
+  athlete_id: string;
+  tipo: "D1" | "D90";
+  peso: string;
+  massa_muscular: string;
+  percentual_gordura: string;
+  observacoes: string;
+  created_at: string;
+}
