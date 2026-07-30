@@ -6,6 +6,7 @@ export interface Athlete {
   cycle_start: string;
   cycle_end: string;
   created_at: string;
+  rcp_athlete_id: string | null;
 }
 
 export interface Objetivo {
