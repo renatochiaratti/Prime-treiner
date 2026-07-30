@@ -195,4 +195,11 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         <MensagensPanel athleteId={athlete.id} athleteName={athlete.name} initialMensagens={mensagens} editable />
       </div>
 
-      
+      <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable />
+    </div>
+  );
+}
+
+function initials(name: string) {
+  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
+}
