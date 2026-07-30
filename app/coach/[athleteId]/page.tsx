@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, Objetivo, MovementRow, ExtraBloco, ExtraExercicio, Aula, Mensagem, Pagamento, RcpAthlete } from "@/lib/types";
+import type { Athlete, Objetivo, MovementRow, ExtraBloco, ExtraExercicio, Aula, Mensagem, Pagamento } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
 import ExtrasEditor from "@/components/ExtrasEditor";
@@ -33,8 +33,6 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
   const [tab, setTab] = useState<TabKey>("levantamentos");
   const [copiedLink, setCopiedLink] = useState(false);
-  const [rcpAthletes, setRcpAthletes] = useState<RcpAthlete[]>([]);
-  const [linkingRcp, setLinkingRcp] = useState(false);
 
   useEffect(() => {
     (async () => {
@@ -45,14 +43,13 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
       if (!a) { router.replace("/coach/dashboard"); return; }
       setAthlete(a as Athlete);
 
-      const [{ data: obj }, { data: mov }, { data: bl }, { data: au }, { data: msg }, { data: pay }, { data: rcp }] = await Promise.all([
+      const [{ data: obj }, { data: mov }, { data: bl }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
         supabase.from("objetivos").select("*").eq("athlete_id", params.athleteId).order("position"),
         supabase.from("movement_rows").select("*").eq("athlete_id", params.athleteId).order("position"),
         supabase.from("extras_blocos").select("*, extras_exercicios(*)").eq("athlete_id", params.athleteId).order("position"),
         supabase.from("aulas").select("*").eq("athlete_id", params.athleteId).order("data"),
         supabase.from("mensagens").select("*").eq("athlete_id", params.athleteId).order("created_at", { ascending: false }),
         supabase.from("pagamentos").select("*").eq("athlete_id", params.athleteId).order("position", { ascending: true }),
-        supabase.from("rcp_athletes").select("*").order("name"),
       ]);
 
       setObjetivos((obj as Objetivo[]) || []);
@@ -61,7 +58,6 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
       setAulas((au as Aula[]) || []);
       setMensagens((msg as Mensagem[]) || []);
       setPagamentos((pay as Pagamento[]) || []);
-      setRcpAthletes((rcp as RcpAthlete[]) || []);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -71,13 +67,6 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
     if (!athlete) return;
     setAthlete({ ...athlete, name });
     await supabase.from("athletes").update({ name }).eq("id", athlete.id);
-  }
-
-  async function linkRcp(rcpAthleteId: string) {
-    if (!athlete || !rcpAthleteId) return;
-    setAthlete({ ...athlete, rcp_athlete_id: rcpAthleteId });
-    await supabase.from("athletes").update({ rcp_athlete_id: rcpAthleteId }).eq("id", athlete.id);
-    setLinkingRcp(false);
   }
 
   function copyShareLink() {
@@ -113,45 +102,22 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         />
       </div>
 
-      {athlete.rcp_athlete_id ? (
-        <button
-          onClick={() => router.push(`/coach/rcp/${athlete.rcp_athlete_id}`)}
-          className="w-full flex items-center justify-center gap-3 rounded-2xl font-extrabold mb-5"
-          style={{
-            background: "#ccff00",
-            color: "#0d1a00",
-            padding: "22px 16px",
-            fontSize: 26,
-            letterSpacing: 0.5,
-            boxShadow: "0 0 24px rgba(204,255,0,0.65), 0 0 0 3px rgba(204,255,0,0.25)",
-            border: "none",
-          }}
-        >
-          <span style={{ fontSize: 44, lineHeight: 1 }}>👑</span>
-          MÉTODO RCP
-        </button>
-      ) : linkingRcp ? (
-        <select
-          autoFocus
-          onChange={(e) => linkRcp(e.target.value)}
-          defaultValue=""
-          className="w-full px-3 py-3 rounded-lg text-sm font-bold mb-5"
-          style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
-        >
-          <option value="" disabled>Escolher aluno do RCP...</option>
-          {rcpAthletes.map((r) => (
-            <option key={r.id} value={r.id}>{r.name}</option>
-          ))}
-        </select>
-      ) : (
-        <button
-          onClick={() => setLinkingRcp(true)}
-          className="w-full py-3 rounded-xl text-sm font-bold mb-5"
-          style={{ border: "1.5px dashed rgba(255,255,255,0.16)", color: "#9a9a9f" }}
-        >
-          + Vincular ao RCP
-        </button>
-      )}
+      <button
+        onClick={() => router.push(`/coach/rcp/${athlete.id}`)}
+        className="w-full flex items-center justify-center gap-3 rounded-2xl font-extrabold mb-5"
+        style={{
+          background: "#ccff00",
+          color: "#0d1a00",
+          padding: "22px 16px",
+          fontSize: 26,
+          letterSpacing: 0.5,
+          boxShadow: "0 0 24px rgba(204,255,0,0.65), 0 0 0 3px rgba(204,255,0,0.25)",
+          border: "none",
+        }}
+      >
+        <span style={{ fontSize: 44, lineHeight: 1 }}>👑</span>
+        MÉTODO RCP
+      </button>
 
       <button onClick={copyShareLink} className="btn mb-5" style={{ padding: "6px 12px", fontSize: 12.5 }}>
         {copiedLink ? "✔ Link copiado!" : "🔗 Copiar link do aluno"}
