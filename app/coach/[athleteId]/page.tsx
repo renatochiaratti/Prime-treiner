@@ -98,7 +98,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         ‹ Todos os alunos
       </button>
 
-      <div className="flex items-center gap-3 mb-2 flex-wrap">
+      <div className="flex items-center gap-3 mb-4">
         <div
           className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
           style={{ width: 48, height: 48, fontSize: 18, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
@@ -111,46 +111,47 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           className="bg-transparent border-none font-extrabold text-[21px]"
           style={{ color: "#d4af37" }}
         />
-
-        {athlete.rcp_athlete_id ? (
-          <button
-            onClick={() => router.push(`/coach/rcp/${athlete.rcp_athlete_id}`)}
-            className="flex items-center gap-2 rounded-full font-extrabold flex-shrink-0"
-            style={{
-              background: "#a3e635",
-              color: "#1a2e05",
-              padding: "12px 22px",
-              fontSize: 16,
-              boxShadow: "0 0 0 5px rgba(163,230,53,0.18)",
-              border: "none",
-            }}
-          >
-            <span style={{ fontSize: 28 }}>👑</span>
-            MÉTODO RCP
-          </button>
-        ) : linkingRcp ? (
-          <select
-            autoFocus
-            onChange={(e) => linkRcp(e.target.value)}
-            defaultValue=""
-            className="px-3 py-2 rounded-lg text-sm font-bold"
-            style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
-          >
-            <option value="" disabled>Escolher aluno do RCP...</option>
-            {rcpAthletes.map((r) => (
-              <option key={r.id} value={r.id}>{r.name}</option>
-            ))}
-          </select>
-        ) : (
-          <button
-            onClick={() => setLinkingRcp(true)}
-            className="text-xs font-bold rounded-full flex-shrink-0"
-            style={{ border: "1.5px dashed rgba(255,255,255,0.16)", color: "#9a9a9f", padding: "8px 14px" }}
-          >
-            + Vincular ao RCP
-          </button>
-        )}
       </div>
+
+      {athlete.rcp_athlete_id ? (
+        <button
+          onClick={() => router.push(`/coach/rcp/${athlete.rcp_athlete_id}`)}
+          className="w-full flex items-center justify-center gap-3 rounded-2xl font-extrabold mb-5"
+          style={{
+            background: "#ccff00",
+            color: "#0d1a00",
+            padding: "22px 16px",
+            fontSize: 26,
+            letterSpacing: 0.5,
+            boxShadow: "0 0 24px rgba(204,255,0,0.65), 0 0 0 3px rgba(204,255,0,0.25)",
+            border: "none",
+          }}
+        >
+          <span style={{ fontSize: 44, lineHeight: 1 }}>👑</span>
+          MÉTODO RCP
+        </button>
+      ) : linkingRcp ? (
+        <select
+          autoFocus
+          onChange={(e) => linkRcp(e.target.value)}
+          defaultValue=""
+          className="w-full px-3 py-3 rounded-lg text-sm font-bold mb-5"
+          style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+        >
+          <option value="" disabled>Escolher aluno do RCP...</option>
+          {rcpAthletes.map((r) => (
+            <option key={r.id} value={r.id}>{r.name}</option>
+          ))}
+        </select>
+      ) : (
+        <button
+          onClick={() => setLinkingRcp(true)}
+          className="w-full py-3 rounded-xl text-sm font-bold mb-5"
+          style={{ border: "1.5px dashed rgba(255,255,255,0.16)", color: "#9a9a9f" }}
+        >
+          + Vincular ao RCP
+        </button>
+      )}
 
       <button onClick={copyShareLink} className="btn mb-5" style={{ padding: "6px 12px", fontSize: 12.5 }}>
         {copiedLink ? "✔ Link copiado!" : "🔗 Copiar link do aluno"}
@@ -194,11 +195,4 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         <MensagensPanel athleteId={athlete.id} athleteName={athlete.name} initialMensagens={mensagens} editable />
       </div>
 
-      <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable />
-    </div>
-  );
-}
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
+      
