@@ -117,3 +117,11 @@ export interface RcpAssessment {
   observacoes: string;
   created_at: string;
 }
+
+export interface RcpExtra {
+  id: string;
+  athlete_id: string;
+  dia: string;
+  texto: string;
+  updated_at: string;
+}
