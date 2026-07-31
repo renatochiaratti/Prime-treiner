@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { weekdayName } from "@/lib/movementLibrary";
 import type { Athlete, Objetivo, MovementRow, ExtraBloco, ExtraExercicio, Aula, Mensagem, Pagamento } from "@/lib/types";
@@ -22,6 +23,7 @@ const TABS = [
 type TabKey = (typeof TABS)[number]["key"];
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
+  const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [athlete, setAthlete] = useState<Athlete | null>(null);
@@ -78,18 +80,32 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
-      <div className="flex items-center gap-3 mb-5">
+      <div className="flex items-center gap-3 mb-4">
         <div
           className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
           style={{ width: 48, height: 48, fontSize: 18, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
         >
           {initials(athlete.name)}
         </div>
-        <div>
-          <div className="font-extrabold text-[19px] text-white leading-tight">{athlete.name}</div>
-          <div className="text-[12.5px] font-bold" style={{ color: "#22c55e" }}>Aluno Prime Trainer</div>
-        </div>
+        <div className="font-extrabold text-[19px] text-white leading-tight">{athlete.name}</div>
       </div>
+
+      <button
+        onClick={() => router.push(`/a/${athlete.share_token}/rcp`)}
+        className="w-full flex items-center justify-center gap-2 rounded-2xl font-extrabold mb-5"
+        style={{
+          background: "#ccff00",
+          color: "#0d1a00",
+          padding: "11px 16px",
+          fontSize: 13,
+          letterSpacing: 0.3,
+          boxShadow: "0 0 12px rgba(204,255,0,0.55), 0 0 0 2px rgba(204,255,0,0.2)",
+          border: "none",
+        }}
+      >
+        <span style={{ fontSize: 22, lineHeight: 1 }}>👑</span>
+        MÉTODO RCP
+      </button>
 
       <div className="grid grid-cols-3 gap-2.5 mb-6">
         <MiniStat label="Objetivos" value={`${doneObjetivos}/${objetivos.length}`} highlight={doneObjetivos > 0} />
