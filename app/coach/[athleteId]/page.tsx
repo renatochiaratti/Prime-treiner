@@ -88,12 +88,12 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
       </button>
 
       <div className="flex items-center gap-3 mb-4">
-        <div
-          className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
-          style={{ width: 48, height: 48, fontSize: 18, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
-        >
-          {initials(athlete.name)}
-        </div>
+        <img
+          src="/icons/icon-192.png"
+          alt="Prime Trainer"
+          className="rounded-full flex-shrink-0"
+          style={{ width: 48, height: 48, objectFit: "cover" }}
+        />
         <input
           defaultValue={athlete.name}
           onBlur={(e) => updateName(e.target.value)}
@@ -164,8 +164,4 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
       <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable />
     </div>
   );
-}
-
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
 }
