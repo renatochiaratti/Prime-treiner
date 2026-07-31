@@ -81,12 +81,12 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
       <div className="flex items-center gap-3 mb-4">
-        <div
-          className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
-          style={{ width: 48, height: 48, fontSize: 18, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
-        >
-          {initials(athlete.name)}
-        </div>
+        <img
+          src="/icons/icon-192.png"
+          alt="Prime Trainer"
+          className="rounded-full flex-shrink-0"
+          style={{ width: 48, height: 48, objectFit: "cover" }}
+        />
         <div className="font-extrabold text-[19px] text-white leading-tight">{athlete.name}</div>
       </div>
 
@@ -161,9 +161,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   );
 }
 
-function initials(name: string) {
-  return name.trim().split(/\s+/).slice(0, 2).map((w) => w[0]).join("").toUpperCase();
-}
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}`;
