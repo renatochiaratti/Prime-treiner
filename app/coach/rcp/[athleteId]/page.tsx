@@ -3,8 +3,18 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
+
+const DIAS = [
+  { key: "seg", label: "Segunda" },
+  { key: "ter", label: "Terça" },
+  { key: "qua", label: "Quarta" },
+  { key: "qui", label: "Quinta" },
+  { key: "sex", label: "Sexta" },
+  { key: "sab", label: "Sábado" },
+  { key: "dom", label: "Domingo" },
+];
 
 export default function RcpAthletePage({ params }: { params: { athleteId: string } }) {
   const router = useRouter();
@@ -12,7 +22,9 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loadRows, setLoadRows] = useState<RcpLoadTracking[]>([]);
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
-  const [tab, setTab] = useState<"programa" | "carga" | "avaliacao">("carga");
+  const [extras, setExtras] = useState<RcpExtra[]>([]);
+  const [tab, setTab] = useState<"programa" | "carga" | "avaliacao" | "extras">("carga");
+  const [selectedDia, setSelectedDia] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -24,6 +36,9 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
       const { data: as_ } = await supabase.from("rcp_assessments").select("*").eq("athlete_id", params.athleteId);
       setAssessments((as_ as RcpAssessment[]) || []);
+
+      const { data: ex } = await supabase.from("rcp_extras").select("*").eq("athlete_id", params.athleteId);
+      setExtras((ex as RcpExtra[]) || []);
 
       setLoading(false);
     })();
@@ -67,6 +82,25 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     }
   }
 
+  function getExtra(dia: string) {
+    return extras.find((e) => e.dia === dia);
+  }
+
+  async function saveExtra(dia: string, texto: string) {
+    const existing = getExtra(dia);
+    if (existing) {
+      setExtras((prev) => prev.map((e) => (e.id === existing.id ? { ...e, texto } : e)));
+      await supabase.from("rcp_extras").update({ texto }).eq("id", existing.id);
+    } else {
+      const { data } = await supabase
+        .from("rcp_extras")
+        .insert({ athlete_id: params.athleteId, dia, texto })
+        .select()
+        .single();
+      if (data) setExtras((prev) => [...prev, data as RcpExtra]);
+    }
+  }
+
   if (loading || !athlete) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
@@ -82,11 +116,12 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         <h1 className="text-white font-extrabold text-xl">Método RCP · {athlete.name}</h1>
       </div>
 
-      <div className="flex gap-1.5 mb-5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
+      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
         {[
           { key: "carga", label: "Carga Semanal" },
           { key: "avaliacao", label: "Avaliação D1/D90" },
           { key: "programa", label: "Programa (12 sem)" },
+          { key: "extras", label: "Extras" },
         ].map((t) => (
           <button
             key={t.key}
@@ -204,6 +239,51 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
               <div className="text-[12.5px]" style={{ color: "#6c6c72" }}>{w.foco}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "extras" && (
+        <div>
+          <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            {DIAS.map((d) => {
+              const hasText = !!getExtra(d.key)?.texto;
+              return (
+                <button
+                  key={d.key}
+                  onClick={() => setSelectedDia(d.key)}
+                  className="py-3 rounded-xl text-[12.5px] font-extrabold"
+                  style={{
+                    background: selectedDia === d.key ? "rgba(204,255,0,0.14)" : "#18191c",
+                    color: selectedDia === d.key ? "#ccff00" : hasText ? "#22c55e" : "#9a9a9f",
+                    border: `1.5px solid ${selectedDia === d.key ? "rgba(204,255,0,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
+                  }}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedDia ? (
+            <div className="card p-4">
+              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
+                {DIAS.find((d) => d.key === selectedDia)?.label} · Atividades extras
+              </h3>
+              <textarea
+                key={selectedDia}
+                defaultValue={getExtra(selectedDia)?.texto || ""}
+                onBlur={(e) => saveExtra(selectedDia, e.target.value)}
+                rows={8}
+                placeholder="Escreva aqui as atividades extras deste dia..."
+                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+              />
+            </div>
+          ) : (
+            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
+              Clica em um dia da semana pra escrever as atividades extras.
+            </div>
+          )}
         </div>
       )}
     </div>
