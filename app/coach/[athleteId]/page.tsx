@@ -104,18 +104,18 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
 
       <button
         onClick={() => router.push(`/coach/rcp/${athlete.id}`)}
-        className="w-full flex items-center justify-center gap-3 rounded-2xl font-extrabold mb-5"
+        className="w-full flex items-center justify-center gap-2 rounded-2xl font-extrabold mb-5"
         style={{
           background: "#ccff00",
           color: "#0d1a00",
-          padding: "22px 16px",
-          fontSize: 26,
-          letterSpacing: 0.5,
-          boxShadow: "0 0 24px rgba(204,255,0,0.65), 0 0 0 3px rgba(204,255,0,0.25)",
+          padding: "11px 16px",
+          fontSize: 13,
+          letterSpacing: 0.3,
+          boxShadow: "0 0 12px rgba(204,255,0,0.55), 0 0 0 2px rgba(204,255,0,0.2)",
           border: "none",
         }}
       >
-        <span style={{ fontSize: 44, lineHeight: 1 }}>👑</span>
+        <span style={{ fontSize: 22, lineHeight: 1 }}>👑</span>
         MÉTODO RCP
       </button>
 
