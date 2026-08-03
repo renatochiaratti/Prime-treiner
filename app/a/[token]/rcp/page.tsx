@@ -2,8 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
+
+const DIAS = [
+  { key: "seg", label: "Segunda" },
+  { key: "ter", label: "Terça" },
+  { key: "qua", label: "Quarta" },
+  { key: "qui", label: "Quinta" },
+  { key: "sex", label: "Sexta" },
+  { key: "sab", label: "Sábado" },
+  { key: "dom", label: "Domingo" },
+];
 
 export default function RcpPublicPage({ params }: { params: { token: string } }) {
   const [loading, setLoading] = useState(true);
@@ -11,7 +21,9 @@ export default function RcpPublicPage({ params }: { params: { token: string } })
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [loadRows, setLoadRows] = useState<RcpLoadTracking[]>([]);
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
-  const [tab, setTab] = useState<"carga" | "avaliacao" | "programa">("carga");
+  const [extras, setExtras] = useState<RcpExtra[]>([]);
+  const [tab, setTab] = useState<"carga" | "avaliacao" | "programa" | "extras">("carga");
+  const [selectedDia, setSelectedDia] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -25,6 +37,9 @@ export default function RcpPublicPage({ params }: { params: { token: string } })
       const { data: as_ } = await supabase.from("rcp_assessments").select("*").eq("athlete_id", a.id);
       setAssessments((as_ as RcpAssessment[]) || []);
 
+      const { data: ex } = await supabase.from("rcp_extras").select("*").eq("athlete_id", a.id);
+      setExtras((ex as RcpExtra[]) || []);
+
       setLoading(false);
     })();
   }, [params.token]);
@@ -35,6 +50,10 @@ export default function RcpPublicPage({ params }: { params: { token: string } })
 
   function getAssessment(tipo: "D1" | "D90") {
     return assessments.find((a) => a.tipo === tipo);
+  }
+
+  function getExtra(dia: string) {
+    return extras.find((e) => e.dia === dia);
   }
 
   if (loading) {
@@ -58,11 +77,12 @@ export default function RcpPublicPage({ params }: { params: { token: string } })
         <h1 className="text-white font-extrabold text-lg">Método RCP · {athlete.name}</h1>
       </div>
 
-      <div className="flex gap-1.5 mb-5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
+      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
         {[
           { key: "carga", label: "Carga Semanal" },
           { key: "avaliacao", label: "Avaliação D1/D90" },
           { key: "programa", label: "Programa (12 sem)" },
+          { key: "extras", label: "Extras" },
         ].map((t) => (
           <button
             key={t.key}
@@ -157,6 +177,51 @@ export default function RcpPublicPage({ params }: { params: { token: string } })
               <div className="text-[12.5px]" style={{ color: "#6c6c72" }}>{w.foco}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "extras" && (
+        <div>
+          <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+            {DIAS.map((d) => {
+              const hasText = !!getExtra(d.key)?.texto;
+              return (
+                <button
+                  key={d.key}
+                  onClick={() => setSelectedDia(d.key)}
+                  className="py-3 rounded-xl text-[12.5px] font-extrabold"
+                  style={{
+                    background: selectedDia === d.key ? "rgba(204,255,0,0.14)" : "#18191c",
+                    color: selectedDia === d.key ? "#ccff00" : hasText ? "#22c55e" : "#9a9a9f",
+                    border: `1.5px solid ${selectedDia === d.key ? "rgba(204,255,0,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
+                  }}
+                >
+                  {d.label}
+                </button>
+              );
+            })}
+          </div>
+
+          {selectedDia ? (
+            <div className="card p-4">
+              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
+                {DIAS.find((d) => d.key === selectedDia)?.label} · Atividades extras
+              </h3>
+              {getExtra(selectedDia)?.texto ? (
+                <div className="text-sm whitespace-pre-wrap" style={{ color: "#f2f2f0" }}>
+                  {getExtra(selectedDia)?.texto}
+                </div>
+              ) : (
+                <div className="text-sm" style={{ color: "#6c6c72" }}>
+                  Nenhuma atividade extra registrada para este dia.
+                </div>
+              )}
+            </div>
+          ) : (
+            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
+              Toque em um dia da semana pra ver as atividades extras.
+            </div>
+          )}
         </div>
       )}
     </div>
