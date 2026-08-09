@@ -4,10 +4,10 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { weekdayName } from "@/lib/movementLibrary";
-import type { Athlete, Objetivo, MovementRow, ExtraBloco, ExtraExercicio, Aula, Mensagem, Pagamento } from "@/lib/types";
+import type { Athlete, Objetivo, MovementRow, Aula, Mensagem, Pagamento, RcpExtra } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
-import ExtrasEditor from "@/components/ExtrasEditor";
+import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
 import MensagensPanel from "@/components/MensagensPanel";
 import PagamentosTable from "@/components/PagamentosTable";
@@ -29,7 +29,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
   const [movementRows, setMovementRows] = useState<MovementRow[]>([]);
-  const [blocos, setBlocos] = useState<(ExtraBloco & { extras_exercicios: ExtraExercicio[] })[]>([]);
+  const [extras, setExtras] = useState<RcpExtra[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
@@ -41,10 +41,10 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       if (!a) { setNotFound(true); setLoading(false); return; }
       setAthlete(a as Athlete);
 
-      const [{ data: obj }, { data: mov }, { data: bl }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
+      const [{ data: obj }, { data: mov }, { data: ex }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
         supabase.from("objetivos").select("*").eq("athlete_id", a.id).order("position"),
         supabase.from("movement_rows").select("*").eq("athlete_id", a.id).order("position"),
-        supabase.from("extras_blocos").select("*, extras_exercicios(*)").eq("athlete_id", a.id).order("position"),
+        supabase.from("rcp_extras").select("*").eq("athlete_id", a.id),
         supabase.from("aulas").select("*").eq("athlete_id", a.id).order("data"),
         supabase.from("mensagens").select("*").eq("athlete_id", a.id).order("created_at", { ascending: false }),
         supabase.from("pagamentos").select("*").eq("athlete_id", a.id),
@@ -52,7 +52,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
       setObjetivos((obj as Objetivo[]) || []);
       setMovementRows((mov as MovementRow[]) || []);
-      setBlocos((bl as any) || []);
+      setExtras((ex as RcpExtra[]) || []);
       setAulas((au as Aula[]) || []);
       setMensagens((msg as Mensagem[]) || []);
       setPagamentos((pay as Pagamento[]) || []);
@@ -138,7 +138,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         </div>
 
         {tab === "extras" ? (
-          <ExtrasEditor athleteId={athlete.id} initialBlocos={blocos} editable={false} />
+          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} editable={false} />
         ) : tab === "aulas" ? (
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
         ) : (
