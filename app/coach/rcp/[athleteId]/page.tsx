@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpExercicios, RcpTreinoExtra } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpExercicios, RcpTreinoBloco } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
 
 const DIAS = [
@@ -24,11 +24,10 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
   const [exercicios, setExercicios] = useState<RcpExercicios | null>(null);
-  const [treinoExtras, setTreinoExtras] = useState<RcpTreinoExtra[]>([]);
+  const [superiores, setSuperiores] = useState<RcpTreinoBloco | null>(null);
+  const [inferiores, setInferiores] = useState<RcpTreinoBloco | null>(null);
   const [tab, setTab] = useState<"programa" | "carga" | "avaliacao" | "extras" | "exercicios" | "superiores" | "inferiores">("carga");
   const [selectedDia, setSelectedDia] = useState<string | null>(null);
-  const [selectedDiaSup, setSelectedDiaSup] = useState<string | null>(null);
-  const [selectedDiaInf, setSelectedDiaInf] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -47,8 +46,11 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       const { data: exs } = await supabase.from("rcp_exercicios").select("*").eq("athlete_id", params.athleteId).maybeSingle();
       setExercicios((exs as RcpExercicios) || null);
 
-      const { data: te } = await supabase.from("rcp_treino_extra").select("*").eq("athlete_id", params.athleteId);
-      setTreinoExtras((te as RcpTreinoExtra[]) || []);
+      const { data: sup } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).eq("tipo", "superiores").maybeSingle();
+      setSuperiores((sup as RcpTreinoBloco) || null);
+
+      const { data: inf } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).eq("tipo", "inferiores").maybeSingle();
+      setInferiores((inf as RcpTreinoBloco) || null);
 
       setLoading(false);
     })();
@@ -125,22 +127,19 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     }
   }
 
-  function getTreinoExtra(tipo: "superiores" | "inferiores", dia: string) {
-    return treinoExtras.find((t) => t.tipo === tipo && t.dia === dia);
-  }
-
-  async function saveTreinoExtra(tipo: "superiores" | "inferiores", dia: string, texto: string) {
-    const existing = getTreinoExtra(tipo, dia);
-    if (existing) {
-      setTreinoExtras((prev) => prev.map((t) => (t.id === existing.id ? { ...t, texto } : t)));
-      await supabase.from("rcp_treino_extra").update({ texto }).eq("id", existing.id);
+  async function saveTreinoBloco(tipo: "superiores" | "inferiores", field: string, value: string) {
+    const current = tipo === "superiores" ? superiores : inferiores;
+    const setCurrent = tipo === "superiores" ? setSuperiores : setInferiores;
+    if (current) {
+      setCurrent({ ...current, [field]: value } as RcpTreinoBloco);
+      await supabase.from("rcp_treino_blocos").update({ [field]: value }).eq("id", current.id);
     } else {
       const { data } = await supabase
-        .from("rcp_treino_extra")
-        .insert({ athlete_id: params.athleteId, tipo, dia, texto })
+        .from("rcp_treino_blocos")
+        .insert({ athlete_id: params.athleteId, tipo, [field]: value })
         .select()
         .single();
-      if (data) setTreinoExtras((prev) => [...prev, data as RcpTreinoExtra]);
+      if (data) setCurrent(data as RcpTreinoBloco);
     }
   }
 
@@ -420,92 +419,170 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       )}
 
       {tab === "superiores" && (
-        <div>
-          <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-            {DIAS.map((d) => {
-              const hasText = !!getTreinoExtra("superiores", d.key)?.texto;
-              return (
-                <button
-                  key={d.key}
-                  onClick={() => setSelectedDiaSup(d.key)}
-                  className="py-3 rounded-xl text-[12.5px] font-extrabold"
-                  style={{
-                    background: selectedDiaSup === d.key ? "rgba(204,255,0,0.14)" : "#18191c",
-                    color: selectedDiaSup === d.key ? "#ccff00" : hasText ? "#22c55e" : "#9a9a9f",
-                    border: `1.5px solid ${selectedDiaSup === d.key ? "rgba(204,255,0,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
-                  }}
-                >
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedDiaSup ? (
-            <div className="card p-4">
-              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
-                {DIAS.find((d) => d.key === selectedDiaSup)?.label} · Superiores
-              </h3>
-              <textarea
-                key={selectedDiaSup}
-                defaultValue={getTreinoExtra("superiores", selectedDiaSup)?.texto || ""}
-                onBlur={(e) => saveTreinoExtra("superiores", selectedDiaSup, e.target.value)}
-                rows={8}
-                placeholder="Escreva aqui o treino de superiores deste dia..."
-                className="w-full px-3 py-2.5 rounded-lg text-sm"
-                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+        <div className="flex flex-col gap-4">
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
+            <div className="flex gap-2">
+              <input
+                placeholder="Movimento"
+                defaultValue={superiores?.b1_movimento || ""}
+                onBlur={(e) => saveTreinoBloco("superiores", "b1_movimento", e.target.value)}
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                style={inputStyle}
+              />
+              <input
+                placeholder="Peso"
+                defaultValue={superiores?.b1_peso || ""}
+                onBlur={(e) => saveTreinoBloco("superiores", "b1_peso", e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm text-center"
+                style={{ ...inputStyle, width: 90 }}
               />
             </div>
-          ) : (
-            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
-              Clica em um dia da semana pra escrever o treino de superiores.
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(superiores as any)?.[`b2_mov${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("superiores", `b2_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(superiores as any)?.[`b2_peso${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("superiores", `b2_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(superiores as any)?.[`b3_mov${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("superiores", `b3_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(superiores as any)?.[`b3_peso${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("superiores", `b3_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
+            <textarea
+              defaultValue={superiores?.b4_texto || ""}
+              onBlur={(e) => saveTreinoBloco("superiores", "b4_texto", e.target.value)}
+              rows={6}
+              placeholder="Escreva aqui as atividades extras..."
+              className="w-full px-3 py-2.5 rounded-lg text-sm"
+              style={inputStyle}
+            />
+          </div>
         </div>
       )}
 
       {tab === "inferiores" && (
-        <div>
-          <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-            {DIAS.map((d) => {
-              const hasText = !!getTreinoExtra("inferiores", d.key)?.texto;
-              return (
-                <button
-                  key={d.key}
-                  onClick={() => setSelectedDiaInf(d.key)}
-                  className="py-3 rounded-xl text-[12.5px] font-extrabold"
-                  style={{
-                    background: selectedDiaInf === d.key ? "rgba(204,255,0,0.14)" : "#18191c",
-                    color: selectedDiaInf === d.key ? "#ccff00" : hasText ? "#22c55e" : "#9a9a9f",
-                    border: `1.5px solid ${selectedDiaInf === d.key ? "rgba(204,255,0,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
-                  }}
-                >
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedDiaInf ? (
-            <div className="card p-4">
-              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
-                {DIAS.find((d) => d.key === selectedDiaInf)?.label} · Inferiores
-              </h3>
-              <textarea
-                key={selectedDiaInf}
-                defaultValue={getTreinoExtra("inferiores", selectedDiaInf)?.texto || ""}
-                onBlur={(e) => saveTreinoExtra("inferiores", selectedDiaInf, e.target.value)}
-                rows={8}
-                placeholder="Escreva aqui o treino de inferiores deste dia..."
-                className="w-full px-3 py-2.5 rounded-lg text-sm"
-                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+        <div className="flex flex-col gap-4">
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
+            <div className="flex gap-2">
+              <input
+                placeholder="Movimento"
+                defaultValue={inferiores?.b1_movimento || ""}
+                onBlur={(e) => saveTreinoBloco("inferiores", "b1_movimento", e.target.value)}
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                style={inputStyle}
+              />
+              <input
+                placeholder="Peso"
+                defaultValue={inferiores?.b1_peso || ""}
+                onBlur={(e) => saveTreinoBloco("inferiores", "b1_peso", e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm text-center"
+                style={{ ...inputStyle, width: 90 }}
               />
             </div>
-          ) : (
-            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
-              Clica em um dia da semana pra escrever o treino de inferiores.
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(inferiores as any)?.[`b2_mov${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("inferiores", `b2_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(inferiores as any)?.[`b2_peso${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("inferiores", `b2_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
             </div>
-          )}
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(inferiores as any)?.[`b3_mov${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("inferiores", `b3_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(inferiores as any)?.[`b3_peso${i}`] || ""}
+                    onBlur={(e) => saveTreinoBloco("inferiores", `b3_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
+            <textarea
+              defaultValue={inferiores?.b4_texto || ""}
+              onBlur={(e) => saveTreinoBloco("inferiores", "b4_texto", e.target.value)}
+              rows={6}
+              placeholder="Escreva aqui as atividades extras..."
+              className="w-full px-3 py-2.5 rounded-lg text-sm"
+              style={inputStyle}
+            />
+          </div>
         </div>
       )}
     </div>
