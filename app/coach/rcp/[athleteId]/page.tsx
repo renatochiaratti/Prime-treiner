@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpExercicios } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
 
 const DIAS = [
@@ -23,7 +23,8 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [loadRows, setLoadRows] = useState<RcpLoadTracking[]>([]);
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
-  const [tab, setTab] = useState<"programa" | "carga" | "avaliacao" | "extras">("carga");
+  const [exercicios, setExercicios] = useState<RcpExercicios | null>(null);
+  const [tab, setTab] = useState<"programa" | "carga" | "avaliacao" | "extras" | "exercicios">("carga");
   const [selectedDia, setSelectedDia] = useState<string | null>(null);
 
   useEffect(() => {
@@ -39,6 +40,9 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
       const { data: ex } = await supabase.from("rcp_extras").select("*").eq("athlete_id", params.athleteId);
       setExtras((ex as RcpExtra[]) || []);
+
+      const { data: exs } = await supabase.from("rcp_exercicios").select("*").eq("athlete_id", params.athleteId).maybeSingle();
+      setExercicios((exs as RcpExercicios) || null);
 
       setLoading(false);
     })();
@@ -101,6 +105,22 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     }
   }
 
+  async function saveExercicio(field: string, value: string) {
+    if (exercicios) {
+      setExercicios({ ...exercicios, [field]: value } as RcpExercicios);
+      await supabase.from("rcp_exercicios").update({ [field]: value }).eq("id", exercicios.id);
+    } else {
+      const { data } = await supabase
+        .from("rcp_exercicios")
+        .insert({ athlete_id: params.athleteId, [field]: value })
+        .select()
+        .single();
+      if (data) setExercicios(data as RcpExercicios);
+    }
+  }
+
+  const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
+
   if (loading || !athlete) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
@@ -121,6 +141,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
           { key: "carga", label: "Carga Semanal" },
           { key: "avaliacao", label: "Avaliação D1/D90" },
           { key: "programa", label: "Programa (12 sem)" },
+          { key: "exercicios", label: "Exercícios" },
           { key: "extras", label: "Extras" },
         ].map((t) => (
           <button
@@ -239,6 +260,90 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
               <div className="text-[12.5px]" style={{ color: "#6c6c72" }}>{w.foco}</div>
             </div>
           ))}
+        </div>
+      )}
+
+      {tab === "exercicios" && (
+        <div className="flex flex-col gap-4">
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
+            <div className="flex gap-2">
+              <input
+                placeholder="Movimento"
+                defaultValue={exercicios?.b1_movimento || ""}
+                onBlur={(e) => saveExercicio("b1_movimento", e.target.value)}
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                style={inputStyle}
+              />
+              <input
+                placeholder="Peso"
+                defaultValue={exercicios?.b1_peso || ""}
+                onBlur={(e) => saveExercicio("b1_peso", e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm text-center"
+                style={{ ...inputStyle, width: 90 }}
+              />
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(exercicios as any)?.[`b2_mov${i}`] || ""}
+                    onBlur={(e) => saveExercicio(`b2_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(exercicios as any)?.[`b2_peso${i}`] || ""}
+                    onBlur={(e) => saveExercicio(`b2_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
+            <div className="flex flex-col gap-2">
+              {[1, 2, 3, 4].map((i) => (
+                <div key={i} className="flex gap-2">
+                  <input
+                    placeholder={`Movimento ${i}`}
+                    defaultValue={(exercicios as any)?.[`b3_mov${i}`] || ""}
+                    onBlur={(e) => saveExercicio(`b3_mov${i}`, e.target.value)}
+                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                    style={inputStyle}
+                  />
+                  <input
+                    placeholder="Peso"
+                    defaultValue={(exercicios as any)?.[`b3_peso${i}`] || ""}
+                    onBlur={(e) => saveExercicio(`b3_peso${i}`, e.target.value)}
+                    className="px-3 py-2.5 rounded-lg text-sm text-center"
+                    style={{ ...inputStyle, width: 90 }}
+                  />
+                </div>
+              ))}
+            </div>
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
+            <textarea
+              defaultValue={exercicios?.b4_texto || ""}
+              onBlur={(e) => saveExercicio("b4_texto", e.target.value)}
+              rows={6}
+              placeholder="Escreva aqui as atividades extras..."
+              className="w-full px-3 py-2.5 rounded-lg text-sm"
+              style={inputStyle}
+            />
+          </div>
         </div>
       )}
 
