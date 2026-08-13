@@ -126,6 +126,15 @@ export interface RcpExtra {
   updated_at: string;
 }
 
+export interface RcpTreinoExtra {
+  id: string;
+  athlete_id: string;
+  tipo: "superiores" | "inferiores";
+  dia: string;
+  texto: string;
+  updated_at: string;
+}
+
 export interface RcpExercicios {
   id: string;
   athlete_id: string;
