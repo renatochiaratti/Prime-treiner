@@ -125,3 +125,28 @@ export interface RcpExtra {
   texto: string;
   updated_at: string;
 }
+
+export interface RcpExercicios {
+  id: string;
+  athlete_id: string;
+  b1_movimento: string;
+  b1_peso: string;
+  b2_mov1: string;
+  b2_peso1: string;
+  b2_mov2: string;
+  b2_peso2: string;
+  b2_mov3: string;
+  b2_peso3: string;
+  b2_mov4: string;
+  b2_peso4: string;
+  b3_mov1: string;
+  b3_peso1: string;
+  b3_mov2: string;
+  b3_peso2: string;
+  b3_mov3: string;
+  b3_peso3: string;
+  b3_mov4: string;
+  b3_peso4: string;
+  b4_texto: string;
+  updated_at: string;
+}
