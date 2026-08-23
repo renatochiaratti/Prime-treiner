@@ -16,6 +16,8 @@ const DIAS = [
   { key: "dom", label: "Domingo" },
 ];
 
+const GRUPO_TIPOS = ["superiores1", "superiores2", "superiores3", "inferiores1", "inferiores2", "inferiores3"];
+
 export default function RcpAthletePage({ params }: { params: { athleteId: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -24,9 +26,10 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
   const [exercicios, setExercicios] = useState<RcpExercicios | null>(null);
-  const [superiores, setSuperiores] = useState<RcpTreinoBloco | null>(null);
-  const [inferiores, setInferiores] = useState<RcpTreinoBloco | null>(null);
-  const [tab, setTab] = useState<"programa" | "carga" | "avaliacao" | "extras" | "exercicios" | "superiores" | "inferiores">("carga");
+  const [blocosMap, setBlocosMap] = useState<Record<string, RcpTreinoBloco>>({});
+  const [tab, setTab] = useState<
+    "programa" | "carga" | "avaliacao" | "extras" | "exercicios" | "superiores1" | "superiores2" | "superiores3" | "inferiores1" | "inferiores2" | "inferiores3"
+  >("carga");
   const [selectedDia, setSelectedDia] = useState<string | null>(null);
 
   useEffect(() => {
@@ -46,11 +49,12 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       const { data: exs } = await supabase.from("rcp_exercicios").select("*").eq("athlete_id", params.athleteId).maybeSingle();
       setExercicios((exs as RcpExercicios) || null);
 
-      const { data: sup } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).eq("tipo", "superiores").maybeSingle();
-      setSuperiores((sup as RcpTreinoBloco) || null);
-
-      const { data: inf } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).eq("tipo", "inferiores").maybeSingle();
-      setInferiores((inf as RcpTreinoBloco) || null);
+      const { data: blocos } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).in("tipo", GRUPO_TIPOS);
+      const map: Record<string, RcpTreinoBloco> = {};
+      ((blocos as RcpTreinoBloco[]) || []).forEach((b) => {
+        map[b.tipo] = b;
+      });
+      setBlocosMap(map);
 
       setLoading(false);
     })();
@@ -127,11 +131,11 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     }
   }
 
-  async function saveTreinoBloco(tipo: "superiores" | "inferiores", field: string, value: string) {
-    const current = tipo === "superiores" ? superiores : inferiores;
-    const setCurrent = tipo === "superiores" ? setSuperiores : setInferiores;
+  async function saveBloco(tipo: string, field: string, value: string) {
+    const current = blocosMap[tipo];
     if (current) {
-      setCurrent({ ...current, [field]: value } as RcpTreinoBloco);
+      const updated = { ...current, [field]: value } as RcpTreinoBloco;
+      setBlocosMap((prev) => ({ ...prev, [tipo]: updated }));
       await supabase.from("rcp_treino_blocos").update({ [field]: value }).eq("id", current.id);
     } else {
       const { data } = await supabase
@@ -139,7 +143,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         .insert({ athlete_id: params.athleteId, tipo, [field]: value })
         .select()
         .single();
-      if (data) setCurrent(data as RcpTreinoBloco);
+      if (data) setBlocosMap((prev) => ({ ...prev, [tipo]: data as RcpTreinoBloco }));
     }
   }
 
@@ -147,6 +151,81 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
   if (loading || !athlete) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
+  }
+
+  function renderGrupoBlocos(tipo: string) {
+    const b = blocosMap[tipo];
+    return (
+      <div className="flex flex-col gap-4">
+        <div className="card p-4">
+          <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
+          <div className="flex gap-2">
+            <input
+              placeholder="Movimento"
+              defaultValue={b?.b1_movimento || ""}
+              onBlur={(e) => saveBloco(tipo, "b1_movimento", e.target.value)}
+              className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+              style={inputStyle}
+            />
+            <input
+              placeholder="Peso"
+              defaultValue={b?.b1_peso || ""}
+              onBlur={(e) => saveBloco(tipo, "b1_peso", e.target.value)}
+              className="px-3 py-2.5 rounded-lg text-sm text-center"
+              style={{ ...inputStyle, width: 90 }}
+            />
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  placeholder={`Movimento ${i}`}
+                  defaultValue={(b as any)?.[`b2_mov${i}`] || ""}
+                  onBlur={(e) => saveBloco(tipo, `b2_mov${i}`, e.target.value)}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                  style={inputStyle}
+                />
+                <input
+                  placeholder="Peso"
+                  defaultValue={(b as any)?.[`b2_peso${i}`] || ""}
+                  onBlur={(e) => saveBloco(tipo, `b2_peso${i}`, e.target.value)}
+                  className="px-3 py-2.5 rounded-lg text-sm text-center"
+                  style={{ ...inputStyle, width: 90 }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+
+        <div className="card p-4">
+          <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
+          <div className="flex flex-col gap-2">
+            {[1, 2, 3, 4].map((i) => (
+              <div key={i} className="flex gap-2">
+                <input
+                  placeholder={`Movimento ${i}`}
+                  defaultValue={(b as any)?.[`b3_mov${i}`] || ""}
+                  onBlur={(e) => saveBloco(tipo, `b3_mov${i}`, e.target.value)}
+                  className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                  style={inputStyle}
+                />
+                <input
+                  placeholder="Peso"
+                  defaultValue={(b as any)?.[`b3_peso${i}`] || ""}
+                  onBlur={(e) => saveBloco(tipo, `b3_peso${i}`, e.target.value)}
+                  className="px-3 py-2.5 rounded-lg text-sm text-center"
+                  style={{ ...inputStyle, width: 90 }}
+                />
+              </div>
+            ))}
+          </div>
+        </div>
+      </div>
+    );
   }
 
   return (
@@ -167,8 +246,12 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
           { key: "programa", label: "Programa (12 sem)" },
           { key: "exercicios", label: "Exercícios" },
           { key: "extras", label: "Extras" },
-          { key: "superiores", label: "Superiores" },
-          { key: "inferiores", label: "Inferiores" },
+          { key: "superiores1", label: "Superiores 1" },
+          { key: "superiores2", label: "Superiores 2" },
+          { key: "superiores3", label: "Superiores 3" },
+          { key: "inferiores1", label: "Inferiores 1" },
+          { key: "inferiores2", label: "Inferiores 2" },
+          { key: "inferiores3", label: "Inferiores 3" },
         ].map((t) => (
           <button
             key={t.key}
@@ -418,173 +501,12 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         </div>
       )}
 
-      {tab === "superiores" && (
-        <div className="flex flex-col gap-4">
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
-            <div className="flex gap-2">
-              <input
-                placeholder="Movimento"
-                defaultValue={superiores?.b1_movimento || ""}
-                onBlur={(e) => saveTreinoBloco("superiores", "b1_movimento", e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Peso"
-                defaultValue={superiores?.b1_peso || ""}
-                onBlur={(e) => saveTreinoBloco("superiores", "b1_peso", e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm text-center"
-                style={{ ...inputStyle, width: 90 }}
-              />
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(superiores as any)?.[`b2_mov${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("superiores", `b2_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(superiores as any)?.[`b2_peso${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("superiores", `b2_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(superiores as any)?.[`b3_mov${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("superiores", `b3_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(superiores as any)?.[`b3_peso${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("superiores", `b3_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
-            <textarea
-              defaultValue={superiores?.b4_texto || ""}
-              onBlur={(e) => saveTreinoBloco("superiores", "b4_texto", e.target.value)}
-              rows={6}
-              placeholder="Escreva aqui as atividades extras..."
-              className="w-full px-3 py-2.5 rounded-lg text-sm"
-              style={inputStyle}
-            />
-          </div>
-        </div>
-      )}
-
-      {tab === "inferiores" && (
-        <div className="flex flex-col gap-4">
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
-            <div className="flex gap-2">
-              <input
-                placeholder="Movimento"
-                defaultValue={inferiores?.b1_movimento || ""}
-                onBlur={(e) => saveTreinoBloco("inferiores", "b1_movimento", e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Peso"
-                defaultValue={inferiores?.b1_peso || ""}
-                onBlur={(e) => saveTreinoBloco("inferiores", "b1_peso", e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm text-center"
-                style={{ ...inputStyle, width: 90 }}
-              />
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(inferiores as any)?.[`b2_mov${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("inferiores", `b2_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(inferiores as any)?.[`b2_peso${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("inferiores", `b2_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(inferiores as any)?.[`b3_mov${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("inferiores", `b3_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(inferiores as any)?.[`b3_peso${i}`] || ""}
-                    onBlur={(e) => saveTreinoBloco("inferiores", `b3_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
-            <textarea
-              defaultValue={inferiores?.b4_texto || ""}
-              onBlur={(e) => saveTreinoBloco("inferiores", "b4_texto", e.target.value)}
-              rows={6}
-              placeholder="Escreva aqui as atividades extras..."
-              className="w-full px-3 py-2.5 rounded-lg text-sm"
-              style={inputStyle}
-            />
-          </div>
-        </div>
-      )}
+      {tab === "superiores1" && renderGrupoBlocos("superiores1")}
+      {tab === "superiores2" && renderGrupoBlocos("superiores2")}
+      {tab === "superiores3" && renderGrupoBlocos("superiores3")}
+      {tab === "inferiores1" && renderGrupoBlocos("inferiores1")}
+      {tab === "inferiores2" && renderGrupoBlocos("inferiores2")}
+      {tab === "inferiores3" && renderGrupoBlocos("inferiores3")}
     </div>
   );
 }
