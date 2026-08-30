@@ -47,15 +47,15 @@ export default function RcpExtrasPanel({
     return extras.find((e) => e.dia === dia);
   }
 
-  async function saveExtra(dia: string, texto: string) {
+  async function saveField(dia: string, field: "texto" | "crossfit_texto", value: string) {
     const existing = getExtra(dia);
     if (existing) {
-      setExtras((prev) => prev.map((e) => (e.id === existing.id ? { ...e, texto } : e)));
-      await supabase.from("rcp_extras").update({ texto }).eq("id", existing.id);
+      setExtras((prev) => prev.map((e) => (e.id === existing.id ? { ...e, [field]: value } : e)));
+      await supabase.from("rcp_extras").update({ [field]: value }).eq("id", existing.id);
     } else {
       const { data } = await supabase
         .from("rcp_extras")
-        .insert({ athlete_id: athleteId, dia, texto })
+        .insert({ athlete_id: athleteId, dia, [field]: value })
         .select()
         .single();
       if (data) setExtras((prev) => [...prev, data as RcpExtra]);
@@ -83,11 +83,14 @@ export default function RcpExtrasPanel({
     }
   }
 
+  const diaLabel = DIAS.find((d) => d.key === selectedDia)?.label;
+  const extraSelecionado = selectedDia ? getExtra(selectedDia) : undefined;
+
   return (
     <div>
       <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
         {DIAS.map((d) => {
-          const hasText = !!getExtra(d.key)?.texto;
+          const hasText = !!getExtra(d.key)?.texto || !!getExtra(d.key)?.crossfit_texto;
           const status = getStatus(d.key);
           return (
             <button
@@ -120,38 +123,65 @@ export default function RcpExtrasPanel({
       </div>
 
       {selectedDia ? (
-        <div className="card p-4">
-          <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#22c55e" }}>
-            {DIAS.find((d) => d.key === selectedDia)?.label} · Atividades extras
-          </h3>
-          {editable ? (
-            <textarea
-              key={selectedDia}
-              defaultValue={getExtra(selectedDia)?.texto || ""}
-              onBlur={(e) => saveExtra(selectedDia, e.target.value)}
-              rows={8}
-              placeholder="Escreva aqui as atividades extras deste dia..."
-              className="w-full px-3 py-2.5 rounded-lg text-sm"
-              style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
-            />
-          ) : getExtra(selectedDia)?.texto ? (
-            <div className="text-sm whitespace-pre-wrap" style={{ color: "#f2f2f0" }}>
-              {getExtra(selectedDia)?.texto}
+        <div className="flex flex-col gap-3">
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
+              {diaLabel} · Treino de CrossFit da semana
+            </h3>
+            {editable ? (
+              <textarea
+                key={`cf-${selectedDia}`}
+                defaultValue={extraSelecionado?.crossfit_texto || ""}
+                onBlur={(e) => saveField(selectedDia, "crossfit_texto", e.target.value)}
+                rows={10}
+                placeholder="Escreva aqui o treino de CrossFit do dia..."
+                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+              />
+            ) : extraSelecionado?.crossfit_texto ? (
+              <div className="text-sm whitespace-pre-wrap" style={{ color: "#f2f2f0" }}>
+                {extraSelecionado.crossfit_texto}
+              </div>
+            ) : (
+              <div className="text-sm" style={{ color: "#6c6c72" }}>
+                Nenhum treino de CrossFit registrado para este dia.
+              </div>
+            )}
+          </div>
+
+          <div className="card p-4">
+            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#22c55e" }}>
+              {diaLabel} · Atividades extras
+            </h3>
+            {editable ? (
+              <textarea
+                key={`ex-${selectedDia}`}
+                defaultValue={extraSelecionado?.texto || ""}
+                onBlur={(e) => saveField(selectedDia, "texto", e.target.value)}
+                rows={8}
+                placeholder="Escreva aqui as atividades extras deste dia..."
+                className="w-full px-3 py-2.5 rounded-lg text-sm"
+                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+              />
+            ) : extraSelecionado?.texto ? (
+              <div className="text-sm whitespace-pre-wrap" style={{ color: "#f2f2f0" }}>
+                {extraSelecionado.texto}
+              </div>
+            ) : (
+              <div className="text-sm" style={{ color: "#6c6c72" }}>
+                Nenhuma atividade extra registrada para este dia.
+              </div>
+            )}
+            <div className="flex gap-4 justify-center text-[11px] font-bold mt-3">
+              <span style={{ color: "#22c55e" }}>● Feito</span>
+              <span style={{ color: "#eab308" }}>● Em espera</span>
+              <span style={{ color: "#ef4444" }}>● Não feito</span>
             </div>
-          ) : (
-            <div className="text-sm" style={{ color: "#6c6c72" }}>
-              Nenhuma atividade extra registrada para este dia.
-            </div>
-          )}
-          <div className="flex gap-4 justify-center text-[11px] font-bold mt-3">
-            <span style={{ color: "#22c55e" }}>● Feito</span>
-            <span style={{ color: "#eab308" }}>● Em espera</span>
-            <span style={{ color: "#ef4444" }}>● Não feito</span>
           </div>
         </div>
       ) : (
         <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
-          {editable ? "Clica em um dia da semana pra escrever as atividades extras." : "Toque em um dia da semana pra ver as atividades extras."}
+          {editable ? "Clica em um dia da semana pra escrever." : "Toque em um dia da semana pra ver."}
         </div>
       )}
     </div>
