@@ -123,6 +123,7 @@ export interface RcpExtra {
   athlete_id: string;
   dia: string;
   texto: string;
+  crossfit_texto: string;
   updated_at: string;
 }
 
