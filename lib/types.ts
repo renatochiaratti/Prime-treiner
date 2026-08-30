@@ -126,10 +126,18 @@ export interface RcpExtra {
   updated_at: string;
 }
 
+export interface RcpCheck {
+  id: string;
+  athlete_id: string;
+  dia: string;
+  status: "verde" | "vermelho" | "amarelo";
+  updated_at: string;
+}
+
 export interface RcpTreinoBloco {
   id: string;
   athlete_id: string;
-  tipo: "superiores" | "inferiores";
+  tipo: string;
   b1_movimento: string;
   b1_peso: string;
   b2_mov1: string;
