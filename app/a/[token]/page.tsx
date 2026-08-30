@@ -8,7 +8,6 @@ import type { Athlete, Objetivo, MovementRow, Aula, Mensagem, Pagamento, RcpExtr
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
-import RcpCheckPanel from "@/components/RcpCheckPanel";
 import AulasEditor from "@/components/AulasEditor";
 import MensagensPanel from "@/components/MensagensPanel";
 import PagamentosTable from "@/components/PagamentosTable";
@@ -19,7 +18,6 @@ const TABS = [
   { key: "ciclicos", label: "Cíclicos" },
   { key: "benchmarks", label: "Benchmarks" },
   { key: "extras", label: "Extras" },
-  { key: "check", label: "Check" },
   { key: "aulas", label: "Aulas" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -143,9 +141,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         </div>
 
         {tab === "extras" ? (
-          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} editable={false} />
-        ) : tab === "check" ? (
-          <RcpCheckPanel athleteId={athlete.id} initialChecks={checks} />
+          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable={false} />
         ) : tab === "aulas" ? (
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
         ) : (
