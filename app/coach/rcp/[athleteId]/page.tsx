@@ -30,7 +30,6 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [tab, setTab] = useState<
     "programa" | "carga" | "avaliacao" | "extras" | "exercicios" | "superiores1" | "superiores2" | "superiores3" | "inferiores1" | "inferiores2" | "inferiores3"
   >("carga");
-  const [selectedDia, setSelectedDia] = useState<string | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -457,47 +456,20 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       )}
 
       {tab === "extras" && (
-        <div>
-          <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
-            {DIAS.map((d) => {
-              const hasText = !!getExtra(d.key)?.texto;
-              return (
-                <button
-                  key={d.key}
-                  onClick={() => setSelectedDia(d.key)}
-                  className="py-3 rounded-xl text-[12.5px] font-extrabold"
-                  style={{
-                    background: selectedDia === d.key ? "rgba(204,255,0,0.14)" : "#18191c",
-                    color: selectedDia === d.key ? "#ccff00" : hasText ? "#22c55e" : "#9a9a9f",
-                    border: `1.5px solid ${selectedDia === d.key ? "rgba(204,255,0,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
-                  }}
-                >
-                  {d.label}
-                </button>
-              );
-            })}
-          </div>
-
-          {selectedDia ? (
-            <div className="card p-4">
-              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>
-                {DIAS.find((d) => d.key === selectedDia)?.label} · Atividades extras
-              </h3>
+        <div style={{ display: "flex", gap: 10, overflowX: "auto", paddingBottom: 8 }}>
+          {DIAS.map((d) => (
+            <div key={d.key} className="card p-3" style={{ flex: "0 0 220px" }}>
+              <h3 className="font-extrabold text-[13px] mb-2" style={{ color: "#ccff00" }}>{d.label}</h3>
               <textarea
-                key={selectedDia}
-                defaultValue={getExtra(selectedDia)?.texto || ""}
-                onBlur={(e) => saveExtra(selectedDia, e.target.value)}
-                rows={8}
+                defaultValue={getExtra(d.key)?.texto || ""}
+                onBlur={(e) => saveExtra(d.key, e.target.value)}
+                rows={21}
                 placeholder="Escreva aqui as atividades extras deste dia..."
                 className="w-full px-3 py-2.5 rounded-lg text-sm"
                 style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
               />
             </div>
-          ) : (
-            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
-              Clica em um dia da semana pra escrever as atividades extras.
-            </div>
-          )}
+          ))}
         </div>
       )}
 
