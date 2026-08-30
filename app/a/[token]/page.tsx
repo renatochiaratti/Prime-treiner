@@ -4,10 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { weekdayName } from "@/lib/movementLibrary";
-import type { Athlete, Objetivo, MovementRow, Aula, Mensagem, Pagamento, RcpExtra } from "@/lib/types";
+import type { Athlete, Objetivo, MovementRow, Aula, Mensagem, Pagamento, RcpExtra, RcpCheck } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
+import RcpCheckPanel from "@/components/RcpCheckPanel";
 import AulasEditor from "@/components/AulasEditor";
 import MensagensPanel from "@/components/MensagensPanel";
 import PagamentosTable from "@/components/PagamentosTable";
@@ -18,6 +19,7 @@ const TABS = [
   { key: "ciclicos", label: "Cíclicos" },
   { key: "benchmarks", label: "Benchmarks" },
   { key: "extras", label: "Extras" },
+  { key: "check", label: "Check" },
   { key: "aulas", label: "Aulas" },
 ] as const;
 type TabKey = (typeof TABS)[number]["key"];
@@ -30,6 +32,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
   const [movementRows, setMovementRows] = useState<MovementRow[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
+  const [checks, setChecks] = useState<RcpCheck[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
@@ -41,10 +44,11 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       if (!a) { setNotFound(true); setLoading(false); return; }
       setAthlete(a as Athlete);
 
-      const [{ data: obj }, { data: mov }, { data: ex }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
+      const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
         supabase.from("objetivos").select("*").eq("athlete_id", a.id).order("position"),
         supabase.from("movement_rows").select("*").eq("athlete_id", a.id).order("position"),
         supabase.from("rcp_extras").select("*").eq("athlete_id", a.id),
+        supabase.from("rcp_checks").select("*").eq("athlete_id", a.id),
         supabase.from("aulas").select("*").eq("athlete_id", a.id).order("data"),
         supabase.from("mensagens").select("*").eq("athlete_id", a.id).order("created_at", { ascending: false }),
         supabase.from("pagamentos").select("*").eq("athlete_id", a.id),
@@ -53,6 +57,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       setObjetivos((obj as Objetivo[]) || []);
       setMovementRows((mov as MovementRow[]) || []);
       setExtras((ex as RcpExtra[]) || []);
+      setChecks((ck as RcpCheck[]) || []);
       setAulas((au as Aula[]) || []);
       setMensagens((msg as Mensagem[]) || []);
       setPagamentos((pay as Pagamento[]) || []);
@@ -139,6 +144,8 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         {tab === "extras" ? (
           <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} editable={false} />
+        ) : tab === "check" ? (
+          <RcpCheckPanel athleteId={athlete.id} initialChecks={checks} />
         ) : tab === "aulas" ? (
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
         ) : (
@@ -147,7 +154,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
             athleteId={athlete.id}
             categoria={tab}
             initialRows={movementRows.filter((r) => r.categoria === tab)}
-            editable={false}
+            editable
           />
         )}
       </div>
