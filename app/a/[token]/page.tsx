@@ -19,7 +19,7 @@ const MOV_TABS = [
 ] as const;
 type MovTabKey = (typeof MOV_TABS)[number]["key"];
 type Section = "objetivos" | "movimentos" | "aulas" | "extras" | "plano";
-type AuthState = "checking" | "signup" | "login" | "ok";
+type AuthState = "checking" | "form" | "ok";
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
   const router = useRouter();
@@ -27,6 +27,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [notFound, setNotFound] = useState(false);
   const [athlete, setAthlete] = useState<Athlete | null>(null);
   const [authState, setAuthState] = useState<AuthState>("checking");
+  const [mode, setMode] = useState<"signup" | "login">("signup");
   const [formEmail, setFormEmail] = useState("");
   const [formPassword, setFormPassword] = useState("");
   const [formPassword2, setFormPassword2] = useState("");
@@ -50,17 +51,12 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
       const { data: { session } } = await supabase.auth.getSession();
 
-      if (!a.auth_user_id) {
-        setAuthState("signup");
-        setLoading(false);
-        return;
-      }
-
       if (session && session.user.id === a.auth_user_id) {
         setAuthState("ok");
         await loadAthleteData(a.id);
       } else {
-        setAuthState("login");
+        setMode(a.auth_user_id ? "login" : "signup");
+        setAuthState("form");
         setLoading(false);
       }
     })();
@@ -94,7 +90,12 @@ export default function AthletePublicPage({ params }: { params: { token: string 
     setAuthLoading(true);
     const { data, error } = await supabase.auth.signUp({ email: formEmail, password: formPassword });
     if (error || !data.user) {
-      setAuthError(error?.message || "Não deu pra criar a conta.");
+      if (error?.message?.toLowerCase().includes("already registered") || error?.message?.toLowerCase().includes("already been registered")) {
+        setAuthError("Esse e-mail já tem conta. Troca pra aba \"Entrar\" e usa sua senha.");
+        setMode("login");
+      } else {
+        setAuthError(error?.message || "Não deu pra criar a conta.");
+      }
       setAuthLoading(false);
       return;
     }
@@ -110,11 +111,13 @@ export default function AthletePublicPage({ params }: { params: { token: string 
     setAuthLoading(true);
     const { data, error } = await supabase.auth.signInWithPassword({ email: formEmail, password: formPassword });
     if (error || !data.user) {
-      setAuthError("E-mail ou senha incorretos.");
+      setAuthError(traduzErro(error?.message));
       setAuthLoading(false);
       return;
     }
-    if (data.user.id !== athlete!.auth_user_id) {
+    if (!athlete!.auth_user_id) {
+      await supabase.from("athletes").update({ auth_user_id: data.user.id }).eq("id", athlete!.id);
+    } else if (data.user.id !== athlete!.auth_user_id) {
       setAuthError("Essa conta não pertence a esse link de aluno.");
       await supabase.auth.signOut();
       setAuthLoading(false);
@@ -139,8 +142,8 @@ export default function AthletePublicPage({ params }: { params: { token: string 
     );
   }
 
-  if (authState === "signup" || authState === "login") {
-    const isSignup = authState === "signup";
+  if (authState === "form") {
+    const isSignup = mode === "signup";
     return (
       <div className="app-shell flex items-center justify-center px-5" style={{ minHeight: "100vh" }}>
         <div className="card p-5 w-full" style={{ maxWidth: 380 }}>
@@ -153,10 +156,33 @@ export default function AthletePublicPage({ params }: { params: { token: string 
             />
             <div>
               <div className="font-extrabold text-[17px] text-white leading-tight">{athlete.name}</div>
-              <div className="text-[12px]" style={{ color: "#9a9a9f" }}>
-                {isSignup ? "Crie sua conta pra acessar" : "Entre na sua conta"}
-              </div>
+              <div className="text-[12px]" style={{ color: "#9a9a9f" }}>Acesse sua área de treino</div>
             </div>
+          </div>
+
+          <div className="flex gap-2 mb-4">
+            <button
+              onClick={() => { setMode("signup"); setAuthError(""); }}
+              className="flex-1 py-2.5 rounded-lg text-[13px] font-extrabold"
+              style={{
+                background: isSignup ? "rgba(204,255,0,0.14)" : "#18191c",
+                color: isSignup ? "#ccff00" : "#9a9a9f",
+                border: `1px solid ${isSignup ? "rgba(204,255,0,0.35)" : "rgba(255,255,255,0.09)"}`,
+              }}
+            >
+              Criar conta
+            </button>
+            <button
+              onClick={() => { setMode("login"); setAuthError(""); }}
+              className="flex-1 py-2.5 rounded-lg text-[13px] font-extrabold"
+              style={{
+                background: !isSignup ? "rgba(204,255,0,0.14)" : "#18191c",
+                color: !isSignup ? "#ccff00" : "#9a9a9f",
+                border: `1px solid ${!isSignup ? "rgba(204,255,0,0.35)" : "rgba(255,255,255,0.09)"}`,
+              }}
+            >
+              Entrar
+            </button>
           </div>
 
           <label className="text-[11px] font-bold block mb-1" style={{ color: "#6c6c72" }}>E-mail</label>
@@ -414,6 +440,13 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 function fmtDate(iso: string) {
   const [y, m, d] = iso.split("-");
   return `${d}/${m}`;
+}
+
+function traduzErro(msg?: string) {
+  if (!msg) return "Não deu pra entrar. Tenta de novo.";
+  if (msg.includes("Invalid login credentials")) return "E-mail ou senha incorretos.";
+  if (msg.includes("Email not confirmed")) return "Essa conta ainda não foi confirmada. Fala com seu coach.";
+  return msg;
 }
 
 function MiniStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
