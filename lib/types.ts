@@ -10,6 +10,7 @@ export interface Athlete {
   crossfit_ativo: boolean;
   rcp_ativo: boolean;
   position: number;
+  auth_user_id: string | null;
 }
 
 export interface Objetivo {
