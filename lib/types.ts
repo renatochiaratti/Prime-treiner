@@ -7,6 +7,8 @@ export interface Athlete {
   cycle_end: string;
   created_at: string;
   rcp_athlete_id: string | null;
+  crossfit_ativo: boolean;
+  rcp_ativo: boolean;
 }
 
 export interface Objetivo {
