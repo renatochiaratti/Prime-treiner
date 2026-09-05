@@ -41,7 +41,7 @@ export default function CoachDashboard() {
     const { data, error } = await supabase
       .from("athletes")
       .select("*")
-      .order("created_at", { ascending: false });
+      .order("position", { ascending: true });
     if (error) throw error;
     setAthletes((data as Athlete[]) || []);
   }
@@ -53,9 +53,11 @@ export default function CoachDashboard() {
     const { data: { session } } = await supabase.auth.getSession();
     if (!session) return;
 
+    const maxPos = athletes.length > 0 ? Math.max(...athletes.map((x) => x.position || 0)) : 0;
+
     const { data: athlete, error } = await supabase
       .from("athletes")
-      .insert({ coach_id: session.user.id, name })
+      .insert({ coach_id: session.user.id, name, position: maxPos + 1 })
       .select()
       .single();
 
@@ -98,6 +100,48 @@ export default function CoachDashboard() {
     const novo = !a.rcp_ativo;
     setAthletes((prev) => prev.map((x) => (x.id === a.id ? { ...x, rcp_ativo: novo } : x)));
     await supabase.from("athletes").update({ rcp_ativo: novo }).eq("id", a.id);
+  }
+
+  async function moveAthlete(index: number, direction: -1 | 1) {
+    const newIndex = index + direction;
+    if (newIndex < 0 || newIndex >= athletes.length) return;
+    const a = athletes[index];
+    const b = athletes[newIndex];
+    const posA = a.position;
+    const posB = b.position;
+
+    const newList = [...athletes];
+    newList[index] = { ...b, position: posA };
+    newList[newIndex] = { ...a, position: posB };
+    setAthletes(newList);
+
+    await supabase.from("athletes").update({ position: posB }).eq("id", a.id);
+    await supabase.from("athletes").update({ position: posA }).eq("id", b.id);
+  }
+
+  async function handleDeleteAthlete(a: Athlete, e: React.MouseEvent) {
+    e.stopPropagation();
+    const confirmado = window.confirm(
+      `Tem certeza que quer apagar o perfil de "${a.name}"?\n\nIsso remove TODOS os dados dele (treinos, pagamentos, mensagens, RCP, etc.) e não pode ser desfeito.`
+    );
+    if (!confirmado) return;
+
+    await Promise.all([
+      supabase.from("movement_rows").delete().eq("athlete_id", a.id),
+      supabase.from("objetivos").delete().eq("athlete_id", a.id),
+      supabase.from("aulas").delete().eq("athlete_id", a.id),
+      supabase.from("mensagens").delete().eq("athlete_id", a.id),
+      supabase.from("pagamentos").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_load_tracking").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_assessments").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_extras").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_checks").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_treino_blocos").delete().eq("athlete_id", a.id),
+      supabase.from("rcp_exercicios").delete().eq("athlete_id", a.id),
+    ]);
+
+    await supabase.from("athletes").delete().eq("id", a.id);
+    setAthletes((prev) => prev.filter((x) => x.id !== a.id));
   }
 
   async function handleLogout() {
@@ -160,40 +204,77 @@ export default function CoachDashboard() {
         {athletes.map((a, i) => (
           <div
             key={a.id}
-            onClick={() => router.push(`/coach/${a.id}`)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer"
+            className="px-4 py-3"
             style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}
           >
-            <div
-              className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
-              style={{ width: 36, height: 36, fontSize: 13, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
-            >
-              {initials(a.name)}
+            <div className="flex items-center gap-3 mb-2.5">
+              <div
+                onClick={() => router.push(`/coach/${a.id}`)}
+                className="flex items-center gap-3 flex-1 cursor-pointer"
+              >
+                <div
+                  className="rounded-full flex items-center justify-center font-extrabold flex-shrink-0"
+                  style={{ width: 36, height: 36, fontSize: 13, background: "linear-gradient(135deg,#d4af37,#22c55e)", color: "#0d0d0d" }}
+                >
+                  {initials(a.name)}
+                </div>
+                <div className="flex-1 font-bold text-[14.5px] text-white">{a.name}</div>
+              </div>
+              <div className="flex flex-col gap-0.5 flex-shrink-0">
+                <button
+                  onClick={(e) => { e.stopPropagation(); moveAthlete(i, -1); }}
+                  disabled={i === 0}
+                  className="leading-none px-1"
+                  style={{ fontSize: 13, color: i === 0 ? "#3a3a3d" : "#9a9a9f" }}
+                >
+                  ▲
+                </button>
+                <button
+                  onClick={(e) => { e.stopPropagation(); moveAthlete(i, 1); }}
+                  disabled={i === athletes.length - 1}
+                  className="leading-none px-1"
+                  style={{ fontSize: 13, color: i === athletes.length - 1 ? "#3a3a3d" : "#9a9a9f" }}
+                >
+                  ▼
+                </button>
+              </div>
+              <div onClick={() => router.push(`/coach/${a.id}`)} className="cursor-pointer flex-shrink-0" style={{ color: "#6c6c72" }}>
+                ›
+              </div>
             </div>
-            <div className="flex-1 font-bold text-[14.5px] text-white">{a.name}</div>
-            <button
-              onClick={(e) => toggleCrossfit(a, e)}
-              className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
-              style={{
-                background: a.crossfit_ativo ? "rgba(59,130,246,0.18)" : "transparent",
-                color: a.crossfit_ativo ? "#3b82f6" : "#6c6c72",
-                border: `1.5px solid ${a.crossfit_ativo ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.16)"}`,
-              }}
-            >
-              CrossFit
-            </button>
-            <button
-              onClick={(e) => toggleRcpAtivo(a, e)}
-              className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
-              style={{
-                background: a.rcp_ativo ? "rgba(34,197,94,0.18)" : "transparent",
-                color: a.rcp_ativo ? "#22c55e" : "#6c6c72",
-                border: `1.5px solid ${a.rcp_ativo ? "rgba(34,197,94,0.5)" : "rgba(255,255,255,0.16)"}`,
-              }}
-            >
-              RCP
-            </button>
-            <div style={{ color: "#6c6c72" }}>›</div>
+
+            <div className="flex items-center gap-2 pl-[48px]">
+              <button
+                onClick={(e) => toggleCrossfit(a, e)}
+                className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
+                style={{
+                  background: a.crossfit_ativo ? "rgba(59,130,246,0.18)" : "transparent",
+                  color: a.crossfit_ativo ? "#3b82f6" : "#6c6c72",
+                  border: `1.5px solid ${a.crossfit_ativo ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.16)"}`,
+                }}
+              >
+                CrossFit
+              </button>
+              <button
+                onClick={(e) => toggleRcpAtivo(a, e)}
+                className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
+                style={{
+                  background: a.rcp_ativo ? "rgba(34,197,94,0.18)" : "transparent",
+                  color: a.rcp_ativo ? "#22c55e" : "#6c6c72",
+                  border: `1.5px solid ${a.rcp_ativo ? "rgba(34,197,94,0.5)" : "rgba(255,255,255,0.16)"}`,
+                }}
+              >
+                RCP
+              </button>
+              <div className="flex-1" />
+              <button
+                onClick={(e) => handleDeleteAthlete(a, e)}
+                className="text-[11px] font-bold flex-shrink-0"
+                style={{ color: "#ef4444" }}
+              >
+                🗑 Remover
+              </button>
+            </div>
           </div>
         ))}
       </div>
