@@ -75,6 +75,9 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
   const proximaAula = aulas.find((a) => a.status === "marcada");
   const doneObjetivos = objetivos.filter((o) => o.done).length;
+  const hoje = new Date();
+  hoje.setHours(0, 0, 0, 0);
+  const pagamentoAtrasado = pagamentos.some((p) => p.status === "pendente" && p.vencimento && new Date(p.vencimento) < hoje);
 
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
@@ -138,15 +141,19 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("objetivos")}
-          className="rounded-2xl flex flex-col justify-center px-4"
+          className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
             height: 82,
-            background: "rgba(167,139,250,0.10)",
-            border: `1.5px solid ${section === "objetivos" ? "rgba(167,139,250,0.6)" : "rgba(167,139,250,0.25)"}`,
+            border: `1.5px solid ${section === "objetivos" ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 4 }}>🎯</div>
-          <div style={{ color: "#a78bfa", fontWeight: 800, fontSize: 13 }}>Objetivos</div>
+          <img
+            src="/images/objetivos-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          <div style={{ position: "relative", color: "#a78bfa", fontWeight: 800, fontSize: 12.5 }}>Objetivos</div>
         </button>
 
         <button
@@ -185,15 +192,22 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("plano")}
-          className="rounded-2xl flex flex-col justify-center px-4"
+          className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
             height: 82,
-            background: "rgba(45,212,191,0.10)",
-            border: `1.5px solid ${section === "plano" ? "rgba(45,212,191,0.6)" : "rgba(45,212,191,0.25)"}`,
+            border: `1.5px solid ${section === "plano" ? "rgba(45,212,191,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
-          <div style={{ fontSize: 20, marginBottom: 4 }}>📋</div>
-          <div style={{ color: "#2dd4bf", fontWeight: 800, fontSize: 13 }}>Meu Plano</div>
+          <img
+            src="/images/plano-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          {pagamentoAtrasado && (
+            <div style={{ position: "absolute", inset: 0, background: "rgba(239,68,68,0.4)" }} />
+          )}
+          <div style={{ position: "relative", color: "#2dd4bf", fontWeight: 800, fontSize: 12.5 }}>Meu Plano</div>
         </button>
       </div>
 
