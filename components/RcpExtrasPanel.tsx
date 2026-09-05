@@ -33,11 +33,13 @@ export default function RcpExtrasPanel({
   initialExtras,
   initialChecks,
   editable,
+  onCrossfitSaved,
 }: {
   athleteId: string;
   initialExtras: RcpExtra[];
   initialChecks: RcpCheck[];
   editable: boolean;
+  onCrossfitSaved?: (dia: string, texto: string) => void;
 }) {
   const [extras, setExtras] = useState<RcpExtra[]>(initialExtras);
   const [checks, setChecks] = useState<RcpCheck[]>(initialChecks);
@@ -59,6 +61,9 @@ export default function RcpExtrasPanel({
         .select()
         .single();
       if (data) setExtras((prev) => [...prev, data as RcpExtra]);
+    }
+    if (field === "crossfit_texto" && onCrossfitSaved) {
+      onCrossfitSaved(dia, value);
     }
   }
 
