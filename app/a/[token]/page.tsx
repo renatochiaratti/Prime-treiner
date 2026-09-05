@@ -4,12 +4,11 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { weekdayName } from "@/lib/movementLibrary";
-import type { Athlete, Objetivo, MovementRow, Aula, Mensagem, Pagamento, RcpExtra, RcpCheck } from "@/lib/types";
+import type { Athlete, Objetivo, MovementRow, Aula, Pagamento, RcpExtra, RcpCheck } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
-import MensagensPanel from "@/components/MensagensPanel";
 import PagamentosTable from "@/components/PagamentosTable";
 
 const MOV_TABS = [
@@ -19,7 +18,7 @@ const MOV_TABS = [
   { key: "benchmarks", label: "Benchmarks" },
 ] as const;
 type MovTabKey = (typeof MOV_TABS)[number]["key"];
-type Section = "movimentos" | "aulas" | "extras";
+type Section = "objetivos" | "movimentos" | "aulas" | "extras" | "plano";
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
   const router = useRouter();
@@ -31,9 +30,8 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [extras, setExtras] = useState<RcpExtra[]>([]);
   const [checks, setChecks] = useState<RcpCheck[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
-  const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [section, setSection] = useState<Section>("movimentos");
+  const [section, setSection] = useState<Section | null>(null);
   const [movTab, setMovTab] = useState<MovTabKey>("levantamentos");
 
   useEffect(() => {
@@ -42,13 +40,12 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       if (!a) { setNotFound(true); setLoading(false); return; }
       setAthlete(a as Athlete);
 
-      const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: msg }, { data: pay }] = await Promise.all([
+      const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: pay }] = await Promise.all([
         supabase.from("objetivos").select("*").eq("athlete_id", a.id).order("position"),
         supabase.from("movement_rows").select("*").eq("athlete_id", a.id).order("position"),
         supabase.from("rcp_extras").select("*").eq("athlete_id", a.id),
         supabase.from("rcp_checks").select("*").eq("athlete_id", a.id),
         supabase.from("aulas").select("*").eq("athlete_id", a.id).order("data"),
-        supabase.from("mensagens").select("*").eq("athlete_id", a.id).order("created_at", { ascending: false }),
         supabase.from("pagamentos").select("*").eq("athlete_id", a.id),
       ]);
 
@@ -57,7 +54,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       setExtras((ex as RcpExtra[]) || []);
       setChecks((ck as RcpCheck[]) || []);
       setAulas((au as Aula[]) || []);
-      setMensagens((msg as Mensagem[]) || []);
       setPagamentos((pay as Pagamento[]) || []);
       setLoading(false);
     })();
@@ -78,7 +74,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   }
 
   const proximaAula = aulas.find((a) => a.status === "marcada");
-  const unreadMsgs = mensagens.filter((m) => !m.lida).length;
   const doneObjetivos = objetivos.filter((o) => o.done).length;
 
   return (
@@ -110,118 +105,149 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         MÉTODO RCP
       </button>
 
-      <div className="grid grid-cols-3 gap-2.5 mb-6">
+      <div className="grid grid-cols-2 gap-2.5 mb-5">
         <MiniStat label="Objetivos" value={`${doneObjetivos}/${objetivos.length}`} highlight={doneObjetivos > 0} />
         <MiniStat
           label={proximaAula?.data ? weekdayName(proximaAula.data) : "Próxima aula"}
           value={proximaAula?.data ? fmtDate(proximaAula.data) : "—"}
           highlight
         />
-        <MiniStat label="Recados novos" value={String(unreadMsgs)} highlight={unreadMsgs > 0} danger={unreadMsgs > 0} />
       </div>
 
-      <ObjetivosCard athleteId={athlete.id} initialObjetivos={objetivos} editable={false} />
+      <div className="grid grid-cols-2 gap-2.5 mb-4">
+        <button
+          onClick={() => setSection("movimentos")}
+          className="relative rounded-2xl overflow-hidden"
+          style={{
+            gridColumn: "1 / span 2",
+            height: 112,
+            border: `1.5px solid ${section === "movimentos" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.09)"}`,
+          }}
+        >
+          <img
+            src="/images/movimentos-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
+          <div style={{ position: "absolute", bottom: 10, left: 14, color: "#fff", fontWeight: 800, fontSize: 16 }}>Movimentos</div>
+          <div style={{ position: "absolute", bottom: 10, right: 14, color: "rgba(255,255,255,0.75)", fontSize: 10.5, textAlign: "right", maxWidth: 140 }}>
+            Levantamentos · Ginásticas · Cíclicos · Benchmarks
+          </div>
+        </button>
 
-      <div className="mb-4 mt-5">
-        <div className="grid grid-cols-2 gap-2.5 mb-3">
-          <button
-            onClick={() => setSection("movimentos")}
-            className="relative rounded-2xl overflow-hidden"
-            style={{
-              gridColumn: "1 / span 2",
-              height: 112,
-              border: `1.5px solid ${section === "movimentos" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.09)"}`,
-            }}
-          >
-            <img
-              src="/images/movimentos-bg.jpg"
-              alt=""
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-            />
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
-            <div style={{ position: "absolute", bottom: 10, left: 14, color: "#fff", fontWeight: 800, fontSize: 16 }}>Movimentos</div>
-            <div style={{ position: "absolute", bottom: 10, right: 14, color: "rgba(255,255,255,0.75)", fontSize: 10.5, textAlign: "right", maxWidth: 140 }}>
-              Levantamentos · Ginásticas · Cíclicos · Benchmarks
-            </div>
-          </button>
+        <button
+          onClick={() => setSection("objetivos")}
+          className="rounded-2xl flex flex-col justify-center px-4"
+          style={{
+            height: 82,
+            background: "rgba(167,139,250,0.10)",
+            border: `1.5px solid ${section === "objetivos" ? "rgba(167,139,250,0.6)" : "rgba(167,139,250,0.25)"}`,
+          }}
+        >
+          <div style={{ fontSize: 20, marginBottom: 4 }}>🎯</div>
+          <div style={{ color: "#a78bfa", fontWeight: 800, fontSize: 13 }}>Objetivos</div>
+        </button>
 
-          <button
-            onClick={() => setSection("aulas")}
-            className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
-            style={{
-              height: 82,
-              border: `1.5px solid ${section === "aulas" ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.09)"}`,
-            }}
-          >
-            <img
-              src="/images/aulas-bg.jpg"
-              alt=""
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-            />
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-            <div style={{ position: "relative", color: "#d4af37", fontWeight: 800, fontSize: 12.5 }}>Aulas marcadas</div>
-          </button>
+        <button
+          onClick={() => setSection("aulas")}
+          className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
+          style={{
+            height: 82,
+            border: `1.5px solid ${section === "aulas" ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.09)"}`,
+          }}
+        >
+          <img
+            src="/images/aulas-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          <div style={{ position: "relative", color: "#d4af37", fontWeight: 800, fontSize: 12.5 }}>Aulas marcadas</div>
+        </button>
 
-          <button
-            onClick={() => setSection("extras")}
-            className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
-            style={{
-              height: 82,
-              border: `1.5px solid ${section === "extras" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.09)"}`,
-            }}
-          >
-            <img
-              src="/images/extras-bg.jpg"
-              alt=""
-              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
-            />
-            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-            <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Extras</div>
-          </button>
+        <button
+          onClick={() => setSection("extras")}
+          className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
+          style={{
+            height: 82,
+            border: `1.5px solid ${section === "extras" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.09)"}`,
+          }}
+        >
+          <img
+            src="/images/extras-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Extras</div>
+        </button>
+
+        <button
+          onClick={() => setSection("plano")}
+          className="rounded-2xl flex flex-col justify-center px-4"
+          style={{
+            height: 82,
+            background: "rgba(45,212,191,0.10)",
+            border: `1.5px solid ${section === "plano" ? "rgba(45,212,191,0.6)" : "rgba(45,212,191,0.25)"}`,
+          }}
+        >
+          <div style={{ fontSize: 20, marginBottom: 4 }}>📋</div>
+          <div style={{ color: "#2dd4bf", fontWeight: 800, fontSize: 13 }}>Meu Plano</div>
+        </button>
+      </div>
+
+      {section === "objetivos" && (
+        <div className="mb-4">
+          <ObjetivosCard athleteId={athlete.id} initialObjetivos={objetivos} editable={false} />
         </div>
+      )}
 
-        {section === "movimentos" && (
-          <>
-            <div className="flex gap-1.5 overflow-x-auto mb-4 pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
-              {MOV_TABS.map((t) => (
-                <button
-                  key={t.key}
-                  onClick={() => setMovTab(t.key)}
-                  className="flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-full"
-                  style={{
-                    background: movTab === t.key ? "rgba(59,130,246,0.14)" : "#18191c",
-                    color: movTab === t.key ? "#3b82f6" : "#9a9a9f",
-                    border: `1px solid ${movTab === t.key ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.09)"}`,
-                  }}
-                >
-                  {t.label}
-                </button>
-              ))}
-            </div>
-            <MovementTable
-              key={movTab}
-              athleteId={athlete.id}
-              categoria={movTab}
-              initialRows={movementRows.filter((r) => r.categoria === movTab)}
-              editable
-            />
-          </>
-        )}
+      {section === "movimentos" && (
+        <div className="mb-4">
+          <div className="flex gap-1.5 overflow-x-auto mb-4 pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
+            {MOV_TABS.map((t) => (
+              <button
+                key={t.key}
+                onClick={() => setMovTab(t.key)}
+                className="flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-full"
+                style={{
+                  background: movTab === t.key ? "rgba(59,130,246,0.14)" : "#18191c",
+                  color: movTab === t.key ? "#3b82f6" : "#9a9a9f",
+                  border: `1px solid ${movTab === t.key ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.09)"}`,
+                }}
+              >
+                {t.label}
+              </button>
+            ))}
+          </div>
+          <MovementTable
+            key={movTab}
+            athleteId={athlete.id}
+            categoria={movTab}
+            initialRows={movementRows.filter((r) => r.categoria === movTab)}
+            editable
+          />
+        </div>
+      )}
 
-        {section === "aulas" && (
+      {section === "aulas" && (
+        <div className="mb-4">
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
-        )}
+        </div>
+      )}
 
-        {section === "extras" && (
+      {section === "extras" && (
+        <div className="mb-4">
           <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable={false} />
-        )}
-      </div>
+        </div>
+      )}
 
-      <div className="mb-6">
-        <MensagensPanel athleteId={athlete.id} athleteName={athlete.name} initialMensagens={mensagens} editable={false} />
-      </div>
-
-      <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable={false} />
+      {section === "plano" && (
+        <div className="mb-4">
+          <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable={false} />
+        </div>
+      )}
     </div>
   );
 }
@@ -231,10 +257,10 @@ function fmtDate(iso: string) {
   return `${d}/${m}`;
 }
 
-function MiniStat({ label, value, highlight, danger }: { label: string; value: string; highlight?: boolean; danger?: boolean }) {
+function MiniStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
   return (
     <div className="card px-3 py-3">
-      <div className="font-extrabold text-xl leading-none mb-1" style={{ color: danger ? "#ef4444" : highlight ? "#d4af37" : "#ffffff" }}>
+      <div className="font-extrabold text-xl leading-none mb-1" style={{ color: highlight ? "#d4af37" : "#ffffff" }}>
         {value}
       </div>
       <div className="text-[10.5px] font-extrabold uppercase" style={{ color: "#6c6c72" }}>{label}</div>
