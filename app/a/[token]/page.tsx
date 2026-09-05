@@ -99,7 +99,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       setAuthLoading(false);
       return;
     }
-    await supabase.from("athletes").update({ auth_user_id: data.user.id }).eq("id", athlete!.id);
+    await supabase.rpc("link_athlete_auth", { p_athlete_id: athlete!.id });
     setAuthState("ok");
     setAuthLoading(false);
     await loadAthleteData(athlete!.id);
@@ -116,7 +116,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       return;
     }
     if (!athlete!.auth_user_id) {
-      await supabase.from("athletes").update({ auth_user_id: data.user.id }).eq("id", athlete!.id);
+      await supabase.rpc("link_athlete_auth", { p_athlete_id: athlete!.id });
     } else if (data.user.id !== athlete!.auth_user_id) {
       setAuthError("Essa conta não pertence a esse link de aluno.");
       await supabase.auth.signOut();
