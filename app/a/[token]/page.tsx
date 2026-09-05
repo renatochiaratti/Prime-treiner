@@ -19,12 +19,20 @@ const MOV_TABS = [
 ] as const;
 type MovTabKey = (typeof MOV_TABS)[number]["key"];
 type Section = "objetivos" | "movimentos" | "aulas" | "extras" | "plano";
+type AuthState = "checking" | "signup" | "login" | "ok";
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [notFound, setNotFound] = useState(false);
   const [athlete, setAthlete] = useState<Athlete | null>(null);
+  const [authState, setAuthState] = useState<AuthState>("checking");
+  const [formEmail, setFormEmail] = useState("");
+  const [formPassword, setFormPassword] = useState("");
+  const [formPassword2, setFormPassword2] = useState("");
+  const [authError, setAuthError] = useState("");
+  const [authLoading, setAuthLoading] = useState(false);
+
   const [objetivos, setObjetivos] = useState<Objetivo[]>([]);
   const [movementRows, setMovementRows] = useState<MovementRow[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
@@ -40,24 +48,82 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       if (!a) { setNotFound(true); setLoading(false); return; }
       setAthlete(a as Athlete);
 
-      const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: pay }] = await Promise.all([
-        supabase.from("objetivos").select("*").eq("athlete_id", a.id).order("position"),
-        supabase.from("movement_rows").select("*").eq("athlete_id", a.id).order("position"),
-        supabase.from("rcp_extras").select("*").eq("athlete_id", a.id),
-        supabase.from("rcp_checks").select("*").eq("athlete_id", a.id),
-        supabase.from("aulas").select("*").eq("athlete_id", a.id).order("data"),
-        supabase.from("pagamentos").select("*").eq("athlete_id", a.id),
-      ]);
+      const { data: { session } } = await supabase.auth.getSession();
 
-      setObjetivos((obj as Objetivo[]) || []);
-      setMovementRows((mov as MovementRow[]) || []);
-      setExtras((ex as RcpExtra[]) || []);
-      setChecks((ck as RcpCheck[]) || []);
-      setAulas((au as Aula[]) || []);
-      setPagamentos((pay as Pagamento[]) || []);
-      setLoading(false);
+      if (!a.auth_user_id) {
+        setAuthState("signup");
+        setLoading(false);
+        return;
+      }
+
+      if (session && session.user.id === a.auth_user_id) {
+        setAuthState("ok");
+        await loadAthleteData(a.id);
+      } else {
+        setAuthState("login");
+        setLoading(false);
+      }
     })();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [params.token]);
+
+  async function loadAthleteData(athleteId: string) {
+    const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: pay }] = await Promise.all([
+      supabase.from("objetivos").select("*").eq("athlete_id", athleteId).order("position"),
+      supabase.from("movement_rows").select("*").eq("athlete_id", athleteId).order("position"),
+      supabase.from("rcp_extras").select("*").eq("athlete_id", athleteId),
+      supabase.from("rcp_checks").select("*").eq("athlete_id", athleteId),
+      supabase.from("aulas").select("*").eq("athlete_id", athleteId).order("data"),
+      supabase.from("pagamentos").select("*").eq("athlete_id", athleteId),
+    ]);
+
+    setObjetivos((obj as Objetivo[]) || []);
+    setMovementRows((mov as MovementRow[]) || []);
+    setExtras((ex as RcpExtra[]) || []);
+    setChecks((ck as RcpCheck[]) || []);
+    setAulas((au as Aula[]) || []);
+    setPagamentos((pay as Pagamento[]) || []);
+    setLoading(false);
+  }
+
+  async function handleSignup() {
+    setAuthError("");
+    if (!formEmail || !formPassword) { setAuthError("Preenche e-mail e senha."); return; }
+    if (formPassword.length < 6) { setAuthError("A senha precisa ter pelo menos 6 caracteres."); return; }
+    if (formPassword !== formPassword2) { setAuthError("As senhas não são iguais."); return; }
+    setAuthLoading(true);
+    const { data, error } = await supabase.auth.signUp({ email: formEmail, password: formPassword });
+    if (error || !data.user) {
+      setAuthError(error?.message || "Não deu pra criar a conta.");
+      setAuthLoading(false);
+      return;
+    }
+    await supabase.from("athletes").update({ auth_user_id: data.user.id }).eq("id", athlete!.id);
+    setAuthState("ok");
+    setAuthLoading(false);
+    await loadAthleteData(athlete!.id);
+  }
+
+  async function handleLogin() {
+    setAuthError("");
+    if (!formEmail || !formPassword) { setAuthError("Preenche e-mail e senha."); return; }
+    setAuthLoading(true);
+    const { data, error } = await supabase.auth.signInWithPassword({ email: formEmail, password: formPassword });
+    if (error || !data.user) {
+      setAuthError("E-mail ou senha incorretos.");
+      setAuthLoading(false);
+      return;
+    }
+    if (data.user.id !== athlete!.auth_user_id) {
+      setAuthError("Essa conta não pertence a esse link de aluno.");
+      await supabase.auth.signOut();
+      setAuthLoading(false);
+      return;
+    }
+    setAuthState("ok");
+    setAuthLoading(false);
+    await loadAthleteData(athlete!.id);
+  }
 
   if (loading) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
@@ -68,6 +134,87 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         <div>
           <h1 className="text-white font-extrabold text-lg mb-2">Link não encontrado</h1>
           <p className="text-sm" style={{ color: "#9a9a9f" }}>Confira com seu coach se o link está certo.</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (authState === "signup" || authState === "login") {
+    const isSignup = authState === "signup";
+    return (
+      <div className="app-shell flex items-center justify-center px-5" style={{ minHeight: "100vh" }}>
+        <div className="card p-5 w-full" style={{ maxWidth: 380 }}>
+          <div className="flex items-center gap-3 mb-4">
+            <img
+              src="/icons/icon-192.png"
+              alt="Prime Trainer"
+              className="rounded-full flex-shrink-0"
+              style={{ width: 44, height: 44, objectFit: "cover" }}
+            />
+            <div>
+              <div className="font-extrabold text-[17px] text-white leading-tight">{athlete.name}</div>
+              <div className="text-[12px]" style={{ color: "#9a9a9f" }}>
+                {isSignup ? "Crie sua conta pra acessar" : "Entre na sua conta"}
+              </div>
+            </div>
+          </div>
+
+          <label className="text-[11px] font-bold block mb-1" style={{ color: "#6c6c72" }}>E-mail</label>
+          <input
+            type="email"
+            value={formEmail}
+            onChange={(e) => setFormEmail(e.target.value)}
+            placeholder="seuemail@exemplo.com"
+            className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
+            style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+          />
+
+          <label className="text-[11px] font-bold block mb-1" style={{ color: "#6c6c72" }}>Senha</label>
+          <input
+            type="password"
+            value={formPassword}
+            onChange={(e) => setFormPassword(e.target.value)}
+            placeholder="••••••"
+            className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
+            style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+          />
+
+          {isSignup && (
+            <>
+              <label className="text-[11px] font-bold block mb-1" style={{ color: "#6c6c72" }}>Confirmar senha</label>
+              <input
+                type="password"
+                value={formPassword2}
+                onChange={(e) => setFormPassword2(e.target.value)}
+                placeholder="••••••"
+                className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
+                style={{ background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" }}
+              />
+            </>
+          )}
+
+          {authError && (
+            <div className="text-sm mb-3" style={{ color: "#ef4444" }}>{authError}</div>
+          )}
+
+          <button
+            onClick={isSignup ? handleSignup : handleLogin}
+            disabled={authLoading}
+            className="w-full rounded-xl font-extrabold"
+            style={{
+              background: "#ccff00",
+              color: "#0d1a00",
+              padding: "12px 16px",
+              fontSize: 13,
+              border: "none",
+            }}
+          >
+            {authLoading ? "Aguarda..." : isSignup ? "Criar conta" : "Entrar"}
+          </button>
+
+          <div className="text-center text-[11px] mt-4" style={{ color: "#6c6c72" }}>
+            Depois de {isSignup ? "criar a conta" : "entrar"}, seu navegador vai lembrar de você — não precisa digitar de novo toda vez.
+          </div>
         </div>
       </div>
     );
