@@ -80,9 +80,31 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
     setTimeout(() => setCopiedLink(false), 1800);
   }
 
+  async function broadcastCrossfitToAll(dia: string, texto: string) {
+    const { data: allAthletes } = await supabase.from("athletes").select("id").neq("id", params.athleteId);
+    if (!allAthletes) return;
+    await Promise.all(
+      (allAthletes as { id: string }[]).map(async (a) => {
+        const { data: existing } = await supabase
+          .from("rcp_extras")
+          .select("id")
+          .eq("athlete_id", a.id)
+          .eq("dia", dia)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("rcp_extras").update({ crossfit_texto: texto }).eq("id", existing.id);
+        } else {
+          await supabase.from("rcp_extras").insert({ athlete_id: a.id, dia, crossfit_texto: texto });
+        }
+      })
+    );
+  }
+
   if (loading || !athlete) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
+
+  const isRenato = athlete.name?.trim().toLowerCase() === "renato";
 
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
@@ -147,7 +169,13 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         </div>
 
         {tab === "extras" ? (
-          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable />
+          <RcpExtrasPanel
+            athleteId={athlete.id}
+            initialExtras={extras}
+            initialChecks={checks}
+            editable
+            onCrossfitSaved={isRenato ? broadcastCrossfitToAll : undefined}
+          />
         ) : tab === "aulas" ? (
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable />
         ) : (
