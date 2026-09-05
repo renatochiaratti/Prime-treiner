@@ -86,6 +86,20 @@ export default function CoachDashboard() {
     router.push(`/coach/${athlete.id}`);
   }
 
+  async function toggleCrossfit(a: Athlete, e: React.MouseEvent) {
+    e.stopPropagation();
+    const novo = !a.crossfit_ativo;
+    setAthletes((prev) => prev.map((x) => (x.id === a.id ? { ...x, crossfit_ativo: novo } : x)));
+    await supabase.from("athletes").update({ crossfit_ativo: novo }).eq("id", a.id);
+  }
+
+  async function toggleRcpAtivo(a: Athlete, e: React.MouseEvent) {
+    e.stopPropagation();
+    const novo = !a.rcp_ativo;
+    setAthletes((prev) => prev.map((x) => (x.id === a.id ? { ...x, rcp_ativo: novo } : x)));
+    await supabase.from("athletes").update({ rcp_ativo: novo }).eq("id", a.id);
+  }
+
   async function handleLogout() {
     await supabase.auth.signOut();
     router.replace("/");
@@ -144,10 +158,10 @@ export default function CoachDashboard() {
           </div>
         )}
         {athletes.map((a, i) => (
-          <button
+          <div
             key={a.id}
             onClick={() => router.push(`/coach/${a.id}`)}
-            className="w-full flex items-center gap-3 px-4 py-3 text-left"
+            className="w-full flex items-center gap-3 px-4 py-3 text-left cursor-pointer"
             style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}
           >
             <div
@@ -157,8 +171,30 @@ export default function CoachDashboard() {
               {initials(a.name)}
             </div>
             <div className="flex-1 font-bold text-[14.5px] text-white">{a.name}</div>
+            <button
+              onClick={(e) => toggleCrossfit(a, e)}
+              className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
+              style={{
+                background: a.crossfit_ativo ? "rgba(59,130,246,0.18)" : "transparent",
+                color: a.crossfit_ativo ? "#3b82f6" : "#6c6c72",
+                border: `1.5px solid ${a.crossfit_ativo ? "rgba(59,130,246,0.5)" : "rgba(255,255,255,0.16)"}`,
+              }}
+            >
+              CrossFit
+            </button>
+            <button
+              onClick={(e) => toggleRcpAtivo(a, e)}
+              className="px-2.5 py-1.5 rounded-md text-[10.5px] font-extrabold flex-shrink-0"
+              style={{
+                background: a.rcp_ativo ? "rgba(34,197,94,0.18)" : "transparent",
+                color: a.rcp_ativo ? "#22c55e" : "#6c6c72",
+                border: `1.5px solid ${a.rcp_ativo ? "rgba(34,197,94,0.5)" : "rgba(255,255,255,0.16)"}`,
+              }}
+            >
+              RCP
+            </button>
             <div style={{ color: "#6c6c72" }}>›</div>
-          </button>
+          </div>
         ))}
       </div>
 
