@@ -12,15 +12,14 @@ import AulasEditor from "@/components/AulasEditor";
 import MensagensPanel from "@/components/MensagensPanel";
 import PagamentosTable from "@/components/PagamentosTable";
 
-const TABS = [
+const MOV_TABS = [
   { key: "levantamentos", label: "Levantamentos" },
   { key: "ginasticas", label: "Ginásticas" },
   { key: "ciclicos", label: "Cíclicos" },
   { key: "benchmarks", label: "Benchmarks" },
-  { key: "extras", label: "Extras" },
-  { key: "aulas", label: "Aulas" },
 ] as const;
-type TabKey = (typeof TABS)[number]["key"];
+type MovTabKey = (typeof MOV_TABS)[number]["key"];
+type Section = "movimentos" | "aulas" | "extras";
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
   const router = useRouter();
@@ -34,7 +33,8 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [mensagens, setMensagens] = useState<Mensagem[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
-  const [tab, setTab] = useState<TabKey>("levantamentos");
+  const [section, setSection] = useState<Section>("movimentos");
+  const [movTab, setMovTab] = useState<MovTabKey>("levantamentos");
 
   useEffect(() => {
     (async () => {
@@ -122,36 +122,98 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
       <ObjetivosCard athleteId={athlete.id} initialObjetivos={objetivos} editable={false} />
 
-      <div className="mb-6">
-        <div className="flex gap-1.5 overflow-x-auto mb-4 pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
-          {TABS.map((t) => (
-            <button
-              key={t.key}
-              onClick={() => setTab(t.key)}
-              className="flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-full"
-              style={{
-                background: tab === t.key ? "rgba(34,197,94,0.14)" : "#18191c",
-                color: tab === t.key ? "#22c55e" : "#9a9a9f",
-                border: `1px solid ${tab === t.key ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
-              }}
-            >
-              {t.label}
-            </button>
-          ))}
+      <div className="mb-4 mt-5">
+        <div className="grid grid-cols-2 gap-2.5 mb-3">
+          <button
+            onClick={() => setSection("movimentos")}
+            className="relative rounded-2xl overflow-hidden"
+            style={{
+              gridColumn: "1 / span 2",
+              height: 112,
+              border: `1.5px solid ${section === "movimentos" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.09)"}`,
+            }}
+          >
+            <img
+              src="/images/movimentos-bg.jpg"
+              alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
+            <div style={{ position: "absolute", bottom: 10, left: 14, color: "#fff", fontWeight: 800, fontSize: 16 }}>Movimentos</div>
+            <div style={{ position: "absolute", bottom: 10, right: 14, color: "rgba(255,255,255,0.75)", fontSize: 10.5, textAlign: "right", maxWidth: 140 }}>
+              Levantamentos · Ginásticas · Cíclicos · Benchmarks
+            </div>
+          </button>
+
+          <button
+            onClick={() => setSection("aulas")}
+            className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
+            style={{
+              height: 82,
+              border: `1.5px solid ${section === "aulas" ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.09)"}`,
+            }}
+          >
+            <img
+              src="/images/aulas-bg.jpg"
+              alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+            <div style={{ position: "relative", color: "#d4af37", fontWeight: 800, fontSize: 12.5 }}>Aulas marcadas</div>
+          </button>
+
+          <button
+            onClick={() => setSection("extras")}
+            className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
+            style={{
+              height: 82,
+              border: `1.5px solid ${section === "extras" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.09)"}`,
+            }}
+          >
+            <img
+              src="/images/extras-bg.jpg"
+              alt=""
+              style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+            />
+            <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+            <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Extras</div>
+          </button>
         </div>
 
-        {tab === "extras" ? (
-          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable={false} />
-        ) : tab === "aulas" ? (
+        {section === "movimentos" && (
+          <>
+            <div className="flex gap-1.5 overflow-x-auto mb-4 pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
+              {MOV_TABS.map((t) => (
+                <button
+                  key={t.key}
+                  onClick={() => setMovTab(t.key)}
+                  className="flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-full"
+                  style={{
+                    background: movTab === t.key ? "rgba(59,130,246,0.14)" : "#18191c",
+                    color: movTab === t.key ? "#3b82f6" : "#9a9a9f",
+                    border: `1px solid ${movTab === t.key ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.09)"}`,
+                  }}
+                >
+                  {t.label}
+                </button>
+              ))}
+            </div>
+            <MovementTable
+              key={movTab}
+              athleteId={athlete.id}
+              categoria={movTab}
+              initialRows={movementRows.filter((r) => r.categoria === movTab)}
+              editable
+            />
+          </>
+        )}
+
+        {section === "aulas" && (
           <AulasEditor athleteId={athlete.id} initialAulas={aulas} editable={false} />
-        ) : (
-          <MovementTable
-            key={tab}
-            athleteId={athlete.id}
-            categoria={tab}
-            initialRows={movementRows.filter((r) => r.categoria === tab)}
-            editable
-          />
+        )}
+
+        {section === "extras" && (
+          <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable={false} />
         )}
       </div>
 
