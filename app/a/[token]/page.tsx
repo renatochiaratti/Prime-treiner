@@ -91,23 +91,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         <div className="font-extrabold text-[19px] text-white leading-tight">{athlete.name}</div>
       </div>
 
-      <button
-        onClick={() => router.push(`/a/${athlete.share_token}/rcp`)}
-        className="w-full flex items-center justify-center gap-2 rounded-2xl font-extrabold mb-5"
-        style={{
-          background: "#ccff00",
-          color: "#0d1a00",
-          padding: "11px 16px",
-          fontSize: 13,
-          letterSpacing: 0.3,
-          boxShadow: "0 0 12px rgba(204,255,0,0.55), 0 0 0 2px rgba(204,255,0,0.2)",
-          border: "none",
-        }}
-      >
-        <span style={{ fontSize: 22, lineHeight: 1 }}>👑</span>
-        MÉTODO RCP
-      </button>
-
       <div className="grid grid-cols-2 gap-2.5 mb-5">
         <MiniStat label="Objetivos" value={`${doneObjetivos}/${objetivos.length}`} highlight={doneObjetivos > 0} />
         <MiniStat
@@ -210,6 +193,21 @@ export default function AthletePublicPage({ params }: { params: { token: string 
           <div style={{ position: "relative", color: "#2dd4bf", fontWeight: 800, fontSize: 12.5 }}>Meu Plano</div>
         </button>
       </div>
+
+      <button
+        onClick={() => router.push(`/a/${athlete.share_token}/rcp`)}
+        className="w-full rounded-2xl flex flex-col items-center justify-center mb-4"
+        style={{
+          height: 106,
+          background: "#0a0a0a",
+          border: "1.5px solid rgba(212,175,55,0.35)",
+        }}
+      >
+        <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: 7, color: "#ffffff" }}>RCP</div>
+        <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: 1.5, color: "#d4af37", marginTop: 6, textTransform: "uppercase" }}>
+          Ressignificar · Começar · Persistir
+        </div>
+      </button>
 
       {section === "objetivos" && (
         <div className="mb-4">
