@@ -39,10 +39,6 @@ export default function GatePage() {
     <div
       style={{
         minHeight: "100vh",
-        backgroundImage: "url(/images/gate-bg.jpg)",
-        backgroundSize: "cover",
-        backgroundPosition: "center top",
-        backgroundRepeat: "no-repeat",
         backgroundColor: "#0a0a0a",
       }}
     >
