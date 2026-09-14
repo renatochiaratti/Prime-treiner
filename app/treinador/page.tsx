@@ -78,8 +78,19 @@ export default function TreinadorPage() {
   }
 
   async function broadcastFortalecimento(template: TreinadorTemplate) {
-    const { data: allAthletes } = await supabase.from("athletes").select("id");
+    const nomes = (template.alunos_alvo || "")
+      .split(",")
+      .map((n) => n.trim().toLowerCase())
+      .filter(Boolean);
+    if (nomes.length === 0) return;
+
+    const { data: allAthletes } = await supabase.from("athletes").select("id, name");
     if (!allAthletes) return;
+    const alvos = (allAthletes as { id: string; name: string }[]).filter((a) =>
+      nomes.includes((a.name || "").trim().toLowerCase())
+    );
+    if (alvos.length === 0) return;
+
     const campos = {
       titulo: template.titulo,
       descricao: template.descricao || "",
@@ -91,7 +102,7 @@ export default function TreinadorPage() {
       ex6_sr: template.ex6_sr || "", ex6_mov: template.ex6_mov || "", ex6_rest: template.ex6_rest || "",
     };
     await Promise.all(
-      (allAthletes as { id: string }[]).map(async (a) => {
+      alvos.map(async (a) => {
         const { data: existing } = await supabase
           .from("athlete_fortalecimentos")
           .select("id")
@@ -267,7 +278,7 @@ export default function TreinadorPage() {
           </div>
 
           <div className="text-[11px] mb-4" style={{ color: "#6c6c72" }}>
-            Tudo que você preencher aqui vai automaticamente pro plano de todos os alunos. Depois, você ainda pode ajustar individualmente dentro do plano de cada um.
+            Escreva o nome do(s) aluno(s) em cada fortalecimento (separados por vírgula) — só eles recebem essa cópia no plano deles. Você ainda pode ajustar individualmente dentro do plano de cada um.
           </div>
 
           {fortalecimentos.length === 0 && (
@@ -289,6 +300,15 @@ export default function TreinadorPage() {
                     🗑 Remover
                   </button>
                 </div>
+
+                <label className="text-[11px] font-bold block mb-1" style={{ color: "#f97316" }}>Alunos (nomes separados por vírgula)</label>
+                <input
+                  defaultValue={f.alunos_alvo || ""}
+                  onBlur={(e) => updateFortalecimentoField(f, "alunos_alvo", e.target.value)}
+                  placeholder="Ex: Thalia, Renato"
+                  className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
+                  style={{ ...inputStyle, border: "1.5px solid rgba(249,115,22,0.4)" }}
+                />
 
                 <input
                   defaultValue={f.descricao || ""}
