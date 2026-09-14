@@ -82,26 +82,6 @@ export default function GatePage() {
             <div style={{ color: "#6c6c72" }}>›</div>
           </a>
 
-          <a
-            href="/treinador"
-            className="card flex items-center gap-4 p-5 mb-4"
-            style={{ border: "1.5px solid rgba(167,139,250,0.3)" }}
-          >
-            <div
-              className="flex items-center justify-center rounded-xl flex-shrink-0"
-              style={{ width: 44, height: 44, background: "rgba(167,139,250,0.12)", fontSize: 19 }}
-            >
-              🗂️
-            </div>
-            <div className="flex-1">
-              <h3 className="font-bold text-white text-[15.5px]">Treinador</h3>
-              <p className="text-xs" style={{ color: "#9a9a9f" }}>
-                Sua biblioteca pessoal de treinos prontos (RCP, fortalecimentos, emagrecimento).
-              </p>
-            </div>
-            <div style={{ color: "#6c6c72" }}>›</div>
-          </a>
-
           <div className="card p-5">
             <div className="flex items-center gap-3 mb-4">
               <div
