@@ -199,3 +199,26 @@ export interface TreinadorTemplate {
   position: number;
   created_at: string;
 }
+
+export interface TreinadorRcpBloco {
+  id: string;
+  grupo: string;
+  semana: number;
+  b1_mov1: string;
+  b1_peso1: string;
+  b1_mov2: string;
+  b1_peso2: string;
+  b1_mov3: string;
+  b1_peso3: string;
+  b1_mov4: string;
+  b1_peso4: string;
+  b2_mov1: string;
+  b2_peso1: string;
+  b2_mov2: string;
+  b2_peso2: string;
+  b2_mov3: string;
+  b2_peso3: string;
+  b2_mov4: string;
+  b2_peso4: string;
+  updated_at: string;
+}
