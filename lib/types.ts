@@ -189,3 +189,13 @@ export interface RcpExercicios {
   b4_texto: string;
   updated_at: string;
 }
+
+export interface TreinadorTemplate {
+  id: string;
+  coach_id: string | null;
+  categoria: string;
+  titulo: string;
+  conteudo: string;
+  position: number;
+  created_at: string;
+}
