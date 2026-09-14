@@ -143,10 +143,9 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
       <div className="grid grid-cols-2 gap-2.5 mb-4">
         <button
           onClick={() => setSection("movimentos")}
-          className="relative rounded-2xl overflow-hidden"
+          className="relative rounded-2xl overflow-hidden flex items-end px-3 py-2.5"
           style={{
-            gridColumn: "1 / span 2",
-            height: 112,
+            height: 92,
             border: `1.5px solid ${section === "movimentos" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
@@ -155,19 +154,15 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
             alt=""
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.15)" }} />
-          <div style={{ position: "absolute", bottom: 10, left: 14, color: "#fff", fontWeight: 800, fontSize: 16 }}>Movimentos</div>
-          <div style={{ position: "absolute", bottom: 10, right: 14, color: "rgba(255,255,255,0.75)", fontSize: 10.5, textAlign: "right", maxWidth: 140 }}>
-            Levantamentos · Ginásticas · Cíclicos · Benchmarks
-          </div>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          <div style={{ position: "relative", color: "#fff", fontWeight: 800, fontSize: 14 }}>Movimentos</div>
         </button>
 
         <button
           onClick={() => setSection("fortalecimentos")}
-          className="relative rounded-2xl overflow-hidden flex items-center px-5"
+          className="relative rounded-2xl overflow-hidden flex items-end px-3 py-2.5"
           style={{
-            gridColumn: "1 / span 2",
-            height: 96,
+            height: 92,
             border: `1.5px solid ${section === "fortalecimentos" ? "rgba(249,115,22,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
@@ -176,19 +171,15 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
             alt=""
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
-          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.2)" }} />
-          <div style={{ position: "relative", fontSize: 34, marginRight: 14 }}>💪</div>
-          <div className="text-left" style={{ position: "relative" }}>
-            <div style={{ color: "#f97316", fontWeight: 800, fontSize: 17 }}>Fortalecimentos</div>
-            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Exercícios de fortalecimento do seu plano</div>
-          </div>
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
+          <div style={{ position: "relative", color: "#f97316", fontWeight: 800, fontSize: 14 }}>Fortalecimentos</div>
         </button>
 
         <button
           onClick={() => setSection("objetivos")}
           className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
-            height: 82,
+            height: 92,
             border: `1.5px solid ${section === "objetivos" ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
@@ -205,7 +196,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           onClick={() => setSection("aulas")}
           className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
-            height: 82,
+            height: 92,
             border: `1.5px solid ${section === "aulas" ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
@@ -222,7 +213,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           onClick={() => setSection("extras")}
           className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
-            height: 82,
+            height: 92,
             border: `1.5px solid ${section === "extras" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
@@ -239,7 +230,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           onClick={() => setSection("plano")}
           className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
-            height: 82,
+            height: 92,
             border: `1.5px solid ${section === "plano" ? "rgba(45,212,191,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
