@@ -197,6 +197,7 @@ export interface TreinadorTemplate {
   titulo: string;
   conteudo: string;
   descricao: string;
+  alunos_alvo: string;
   ex1_sr: string;
   ex1_mov: string;
   ex1_rest: string;
