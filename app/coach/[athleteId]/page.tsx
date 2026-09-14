@@ -168,14 +168,19 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
           style={{
             gridColumn: "1 / span 2",
             height: 96,
-            background: "linear-gradient(135deg, rgba(249,115,22,0.18), rgba(249,115,22,0.04))",
-            border: `1.5px solid ${section === "fortalecimentos" ? "rgba(249,115,22,0.6)" : "rgba(249,115,22,0.25)"}`,
+            border: `1.5px solid ${section === "fortalecimentos" ? "rgba(249,115,22,0.6)" : "rgba(255,255,255,0.09)"}`,
           }}
         >
-          <div style={{ fontSize: 34, marginRight: 14 }}>💪</div>
-          <div className="text-left">
+          <img
+            src="/images/fortalecimentos-bg.jpg"
+            alt=""
+            style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
+          />
+          <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.2)" }} />
+          <div style={{ position: "relative", fontSize: 34, marginRight: 14 }}>💪</div>
+          <div className="text-left" style={{ position: "relative" }}>
             <div style={{ color: "#f97316", fontWeight: 800, fontSize: 17 }}>Fortalecimentos</div>
-            <div style={{ color: "rgba(255,255,255,0.55)", fontSize: 11 }}>Exercícios de fortalecimento do seu plano</div>
+            <div style={{ color: "rgba(255,255,255,0.7)", fontSize: 11 }}>Exercícios de fortalecimento do seu plano</div>
           </div>
         </button>
 
