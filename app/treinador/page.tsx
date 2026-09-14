@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { TreinadorTemplate } from "@/lib/types";
+import type { TreinadorTemplate, TreinadorRcpBloco } from "@/lib/types";
 
 const SEMANAS = [1, 2, 3];
 const EMAGRECIMENTO_ITENS = ["Progressão 3x na semana", "Progressão 5x na semana"];
@@ -14,6 +14,7 @@ export default function TreinadorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
   const [templates, setTemplates] = useState<TreinadorTemplate[]>([]);
+  const [rcpBlocos, setRcpBlocos] = useState<TreinadorRcpBloco[]>([]);
   const [secao, setSecao] = useState<Secao>("rcp");
   const [grupo, setGrupo] = useState<"Superior" | "Inferior">("Superior");
   const [semana, setSemana] = useState(1);
@@ -24,8 +25,12 @@ export default function TreinadorPage() {
       const { data: { session } } = await supabase.auth.getSession();
       if (!session) { router.replace("/coach/login"); return; }
 
-      const { data } = await supabase.from("treinador_templates").select("*").order("position", { ascending: true });
-      setTemplates((data as TreinadorTemplate[]) || []);
+      const [{ data: tpl }, { data: rcp }] = await Promise.all([
+        supabase.from("treinador_templates").select("*").order("position", { ascending: true }),
+        supabase.from("treinador_rcp_blocos").select("*"),
+      ]);
+      setTemplates((tpl as TreinadorTemplate[]) || []);
+      setRcpBlocos((rcp as TreinadorRcpBloco[]) || []);
       setLoading(false);
     })();
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -70,16 +75,65 @@ export default function TreinadorPage() {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   }
 
+  function getRcpBloco(g: string, s: number) {
+    return rcpBlocos.find((r) => r.grupo === g && r.semana === s);
+  }
+
+  async function saveRcpCampo(g: string, s: number, campo: string, valor: string) {
+    const existing = getRcpBloco(g, s);
+    if (existing) {
+      setRcpBlocos((prev) => prev.map((r) => (r.id === existing.id ? { ...r, [campo]: valor } : r)));
+      await supabase.from("treinador_rcp_blocos").update({ [campo]: valor }).eq("id", existing.id);
+    } else {
+      const { data } = await supabase
+        .from("treinador_rcp_blocos")
+        .insert({ grupo: g, semana: s, [campo]: valor })
+        .select()
+        .single();
+      if (data) setRcpBlocos((prev) => [...prev, data as TreinadorRcpBloco]);
+    }
+  }
+
   const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
   const fortalecimentos = templates.filter((t) => t.categoria === "fortalecimento");
+  const bloco = getRcpBloco(grupo, semana);
 
   if (loading) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
 
+  function renderBlocoRcp(numero: 1 | 2) {
+    const prefixo = `b${numero}`;
+    return (
+      <div className="card p-4 mb-3">
+        <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco {numero}</h3>
+        <div className="flex flex-col gap-2">
+          {[1, 2, 3, 4].map((i) => (
+            <div key={i} className="flex gap-2">
+              <input
+                placeholder={`Movimento ${i}`}
+                defaultValue={(bloco as any)?.[`${prefixo}_mov${i}`] || ""}
+                onBlur={(e) => saveRcpCampo(grupo, semana, `${prefixo}_mov${i}`, e.target.value)}
+                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+                style={inputStyle}
+              />
+              <input
+                placeholder="Peso"
+                defaultValue={(bloco as any)?.[`${prefixo}_peso${i}`] || ""}
+                onBlur={(e) => saveRcpCampo(grupo, semana, `${prefixo}_peso${i}`, e.target.value)}
+                className="px-3 py-2.5 rounded-lg text-sm text-center"
+                style={{ ...inputStyle, width: 90 }}
+              />
+            </div>
+          ))}
+        </div>
+      </div>
+    );
+  }
+
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
-      <button onClick={() => router.push("/")} className="text-xs font-bold mb-3" style={{ color: "#6c6c72" }}>
+      <button onClick={() => router.push("/coach/dashboard")} className="text-xs font-bold mb-3" style={{ color: "#6c6c72" }}>
         ‹ Voltar
       </button>
 
@@ -145,20 +199,11 @@ export default function TreinadorPage() {
             ))}
           </div>
 
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#d4af37" }}>
-              {grupo} · Semana {semana}
-            </h3>
-            <textarea
-              key={`${grupo}-${semana}`}
-              defaultValue={getTemplate("rcp", `${grupo} Semana ${semana}`)?.conteudo || ""}
-              onBlur={(e) => saveTemplate("rcp", `${grupo} Semana ${semana}`, e.target.value)}
-              rows={14}
-              placeholder={`Escreva aqui a estrutura pronta de ${grupo} · Semana ${semana}...`}
-              className="w-full px-3 py-2.5 rounded-lg text-sm"
-              style={inputStyle}
-            />
+          <div className="mb-2 text-[12.5px] font-extrabold" style={{ color: "#9a9a9f" }}>
+            {grupo} · Semana {semana}
           </div>
+          {renderBlocoRcp(1)}
+          {renderBlocoRcp(2)}
         </div>
       )}
 
