@@ -7,6 +7,7 @@ import type { TreinadorTemplate, TreinadorRcpBloco } from "@/lib/types";
 
 const SEMANAS = [1, 2, 3];
 const EMAGRECIMENTO_ITENS = ["Progressão 3x na semana", "Progressão 5x na semana"];
+const EX_SLOTS = [1, 2, 3, 4, 5, 6];
 
 type Secao = "rcp" | "fortalecimentos" | "emagrecimento";
 
@@ -69,10 +70,48 @@ export default function TreinadorPage() {
   }
 
   async function removeFortalecimento(id: string) {
-    const confirmado = window.confirm("Remover esse fortalecimento da lista?");
+    const confirmado = window.confirm("Remover esse fortalecimento da lista? Ele também some do plano dos alunos.");
     if (!confirmado) return;
+    await supabase.from("athlete_fortalecimentos").delete().eq("template_id", id);
     await supabase.from("treinador_templates").delete().eq("id", id);
     setTemplates((prev) => prev.filter((t) => t.id !== id));
+  }
+
+  async function broadcastFortalecimento(template: TreinadorTemplate) {
+    const { data: allAthletes } = await supabase.from("athletes").select("id");
+    if (!allAthletes) return;
+    const campos = {
+      titulo: template.titulo,
+      descricao: template.descricao || "",
+      ex1_sr: template.ex1_sr || "", ex1_mov: template.ex1_mov || "", ex1_rest: template.ex1_rest || "",
+      ex2_sr: template.ex2_sr || "", ex2_mov: template.ex2_mov || "", ex2_rest: template.ex2_rest || "",
+      ex3_sr: template.ex3_sr || "", ex3_mov: template.ex3_mov || "", ex3_rest: template.ex3_rest || "",
+      ex4_sr: template.ex4_sr || "", ex4_mov: template.ex4_mov || "", ex4_rest: template.ex4_rest || "",
+      ex5_sr: template.ex5_sr || "", ex5_mov: template.ex5_mov || "", ex5_rest: template.ex5_rest || "",
+      ex6_sr: template.ex6_sr || "", ex6_mov: template.ex6_mov || "", ex6_rest: template.ex6_rest || "",
+    };
+    await Promise.all(
+      (allAthletes as { id: string }[]).map(async (a) => {
+        const { data: existing } = await supabase
+          .from("athlete_fortalecimentos")
+          .select("id")
+          .eq("athlete_id", a.id)
+          .eq("template_id", template.id)
+          .maybeSingle();
+        if (existing) {
+          await supabase.from("athlete_fortalecimentos").update(campos).eq("id", existing.id);
+        } else {
+          await supabase.from("athlete_fortalecimentos").insert({ athlete_id: a.id, template_id: template.id, ...campos });
+        }
+      })
+    );
+  }
+
+  async function updateFortalecimentoField(f: TreinadorTemplate, campo: string, valor: string) {
+    const atualizado = { ...f, [campo]: valor } as TreinadorTemplate;
+    setTemplates((prev) => prev.map((t) => (t.id === f.id ? atualizado : t)));
+    await supabase.from("treinador_templates").update({ [campo]: valor }).eq("id", f.id);
+    await broadcastFortalecimento(atualizado);
   }
 
   function getRcpBloco(g: string, s: number) {
@@ -95,6 +134,7 @@ export default function TreinadorPage() {
   }
 
   const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
+  const smallInputStyle = { ...inputStyle, width: 90 };
   const fortalecimentos = templates.filter((t) => t.categoria === "fortalecimento");
   const bloco = getRcpBloco(grupo, semana);
 
@@ -226,6 +266,10 @@ export default function TreinadorPage() {
             </button>
           </div>
 
+          <div className="text-[11px] mb-4" style={{ color: "#6c6c72" }}>
+            Tudo que você preencher aqui vai automaticamente pro plano de todos os alunos. Depois, você ainda pode ajustar individualmente dentro do plano de cada um.
+          </div>
+
           {fortalecimentos.length === 0 && (
             <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
               Nenhum fortalecimento criado ainda. Adiciona o primeiro aí em cima.
@@ -236,7 +280,7 @@ export default function TreinadorPage() {
             {fortalecimentos.map((f) => (
               <div key={f.id} className="card p-4">
                 <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-extrabold text-[14px]" style={{ color: "#d4af37" }}>{f.titulo}</h3>
+                  <h3 className="font-extrabold text-[15px]" style={{ color: "#d4af37" }}>{f.titulo}</h3>
                   <button
                     onClick={() => removeFortalecimento(f.id)}
                     className="text-[11px] font-bold"
@@ -245,14 +289,47 @@ export default function TreinadorPage() {
                     🗑 Remover
                   </button>
                 </div>
-                <textarea
-                  defaultValue={f.conteudo}
-                  onBlur={(e) => saveTemplate("fortalecimento", f.titulo, e.target.value)}
-                  rows={10}
-                  placeholder="Escreva aqui a estrutura pronta desse fortalecimento..."
-                  className="w-full px-3 py-2.5 rounded-lg text-sm"
+
+                <input
+                  defaultValue={f.descricao || ""}
+                  onBlur={(e) => updateFortalecimentoField(f, "descricao", e.target.value)}
+                  placeholder="Sobre o que é esse fortalecimento..."
+                  className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
                   style={inputStyle}
                 />
+
+                <div className="flex flex-col gap-2">
+                  {EX_SLOTS.map((n) => (
+                    <div key={n} className="p-3 rounded-lg" style={{ background: "#101012", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <div className="flex gap-2 mb-2">
+                        <input
+                          placeholder="Séries x Reps"
+                          defaultValue={(f as any)[`ex${n}_sr`] || ""}
+                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_sr`, e.target.value)}
+                          className="px-2 py-2 rounded-md text-xs text-center flex-shrink-0"
+                          style={{ ...smallInputStyle, width: 96 }}
+                        />
+                        <input
+                          placeholder={`Movimento ${n}`}
+                          defaultValue={(f as any)[`ex${n}_mov`] || ""}
+                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_mov`, e.target.value)}
+                          className="flex-1 px-3 py-2 rounded-md text-sm"
+                          style={inputStyle}
+                        />
+                      </div>
+                      <div className="flex items-center justify-center gap-2">
+                        <span className="text-[11px] font-extrabold" style={{ color: "#9a9a9f" }}>REST</span>
+                        <input
+                          placeholder="0:00"
+                          defaultValue={(f as any)[`ex${n}_rest`] || ""}
+                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_rest`, e.target.value)}
+                          className="px-2 py-2 rounded-md text-xs text-center"
+                          style={{ ...smallInputStyle, width: 80 }}
+                        />
+                      </div>
+                    </div>
+                  ))}
+                </div>
               </div>
             ))}
           </div>
