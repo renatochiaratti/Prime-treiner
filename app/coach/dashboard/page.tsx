@@ -174,6 +174,21 @@ export default function CoachDashboard() {
         <h1 className="text-white font-extrabold text-xl">Seus Alunos</h1>
         <div className="flex items-center gap-2">
           <button
+            onClick={() => router.push("/treinador")}
+            title="Treinador"
+            className="rounded-full flex items-center justify-center flex-shrink-0"
+            style={{
+              width: 38,
+              height: 38,
+              background: "rgba(167,139,250,0.15)",
+              color: "#a78bfa",
+              fontSize: 17,
+              border: "1.5px solid rgba(167,139,250,0.4)",
+            }}
+          >
+            🗂️
+          </button>
+          <button
             onClick={() => router.push("/coach/rcp")}
             title="Método RCP"
             className="rounded-full flex items-center justify-center flex-shrink-0"
