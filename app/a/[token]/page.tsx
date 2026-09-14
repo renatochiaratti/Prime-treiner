@@ -280,7 +280,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
         <button
           onClick={() => setSection("movimentos")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "movimentos" ? "rgba(59,130,246,0.6)" : "rgba(255,255,255,0.09)"}`,
@@ -297,7 +297,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("fortalecimentos")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "fortalecimentos" ? "rgba(249,115,22,0.6)" : "rgba(255,255,255,0.09)"}`,
@@ -314,7 +314,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("objetivos")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "objetivos" ? "rgba(167,139,250,0.6)" : "rgba(255,255,255,0.09)"}`,
@@ -331,7 +331,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("aulas")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "aulas" ? "rgba(212,175,55,0.6)" : "rgba(255,255,255,0.09)"}`,
@@ -348,7 +348,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("extras")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "extras" ? "rgba(34,197,94,0.6)" : "rgba(255,255,255,0.09)"}`,
@@ -365,7 +365,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
 
         <button
           onClick={() => setSection("plano")}
-          className="relative rounded-2xl overflow-hidden flex items-center justify-center text-center px-3 py-2.5"
+          className="relative rounded-2xl overflow-hidden flex flex-col items-center justify-end text-center px-3 py-2.5"
           style={{
             height: 92,
             border: `1.5px solid ${section === "plano" ? "rgba(45,212,191,0.6)" : "rgba(255,255,255,0.09)"}`,
