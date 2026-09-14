@@ -196,8 +196,55 @@ export interface TreinadorTemplate {
   categoria: string;
   titulo: string;
   conteudo: string;
+  descricao: string;
+  ex1_sr: string;
+  ex1_mov: string;
+  ex1_rest: string;
+  ex2_sr: string;
+  ex2_mov: string;
+  ex2_rest: string;
+  ex3_sr: string;
+  ex3_mov: string;
+  ex3_rest: string;
+  ex4_sr: string;
+  ex4_mov: string;
+  ex4_rest: string;
+  ex5_sr: string;
+  ex5_mov: string;
+  ex5_rest: string;
+  ex6_sr: string;
+  ex6_mov: string;
+  ex6_rest: string;
   position: number;
   created_at: string;
+}
+
+export interface AthleteFortalecimento {
+  id: string;
+  athlete_id: string;
+  template_id: string | null;
+  titulo: string;
+  descricao: string;
+  ex1_sr: string;
+  ex1_mov: string;
+  ex1_rest: string;
+  ex2_sr: string;
+  ex2_mov: string;
+  ex2_rest: string;
+  ex3_sr: string;
+  ex3_mov: string;
+  ex3_rest: string;
+  ex4_sr: string;
+  ex4_mov: string;
+  ex4_rest: string;
+  ex5_sr: string;
+  ex5_mov: string;
+  ex5_rest: string;
+  ex6_sr: string;
+  ex6_mov: string;
+  ex6_rest: string;
+  position: number;
+  updated_at: string;
 }
 
 export interface TreinadorRcpBloco {
