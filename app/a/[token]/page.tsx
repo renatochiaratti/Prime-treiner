@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import { weekdayName } from "@/lib/movementLibrary";
-import type { Athlete, Objetivo, MovementRow, Aula, Pagamento, RcpExtra, RcpCheck } from "@/lib/types";
+import type { Athlete, Objetivo, MovementRow, Aula, Pagamento, RcpExtra, RcpCheck, AthleteFortalecimento } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
@@ -18,7 +18,7 @@ const MOV_TABS = [
   { key: "benchmarks", label: "Benchmarks" },
 ] as const;
 type MovTabKey = (typeof MOV_TABS)[number]["key"];
-type Section = "objetivos" | "movimentos" | "aulas" | "extras" | "plano";
+type Section = "objetivos" | "movimentos" | "aulas" | "extras" | "plano" | "fortalecimentos";
 type AuthState = "checking" | "form" | "ok";
 
 export default function AthletePublicPage({ params }: { params: { token: string } }) {
@@ -40,6 +40,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [checks, setChecks] = useState<RcpCheck[]>([]);
   const [aulas, setAulas] = useState<Aula[]>([]);
   const [pagamentos, setPagamentos] = useState<Pagamento[]>([]);
+  const [fortalecimentos, setFortalecimentos] = useState<AthleteFortalecimento[]>([]);
   const [section, setSection] = useState<Section | null>(null);
   const [movTab, setMovTab] = useState<MovTabKey>("levantamentos");
 
@@ -64,13 +65,14 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   }, [params.token]);
 
   async function loadAthleteData(athleteId: string) {
-    const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: pay }] = await Promise.all([
+    const [{ data: obj }, { data: mov }, { data: ex }, { data: ck }, { data: au }, { data: pay }, { data: fort }] = await Promise.all([
       supabase.from("objetivos").select("*").eq("athlete_id", athleteId).order("position"),
       supabase.from("movement_rows").select("*").eq("athlete_id", athleteId).order("position"),
       supabase.from("rcp_extras").select("*").eq("athlete_id", athleteId),
       supabase.from("rcp_checks").select("*").eq("athlete_id", athleteId),
       supabase.from("aulas").select("*").eq("athlete_id", athleteId).order("data"),
       supabase.from("pagamentos").select("*").eq("athlete_id", athleteId),
+      supabase.from("athlete_fortalecimentos").select("*").eq("athlete_id", athleteId).order("position"),
     ]);
 
     setObjetivos((obj as Objetivo[]) || []);
@@ -79,6 +81,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
     setChecks((ck as RcpCheck[]) || []);
     setAulas((au as Aula[]) || []);
     setPagamentos((pay as Pagamento[]) || []);
+    setFortalecimentos((fort as AthleteFortalecimento[]) || []);
     setLoading(false);
   }
 
@@ -251,6 +254,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const pagamentoAtrasado = pagamentos.some((p) => p.status === "pendente" && p.vencimento && new Date(p.vencimento) < hoje);
+  const EX_SLOTS = [1, 2, 3, 4, 5, 6];
 
   return (
     <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
@@ -347,6 +351,19 @@ export default function AthletePublicPage({ params }: { params: { token: string 
         </button>
 
         <button
+          onClick={() => setSection("fortalecimentos")}
+          className="rounded-2xl flex flex-col justify-center px-4"
+          style={{
+            height: 82,
+            background: "rgba(249,115,22,0.10)",
+            border: `1.5px solid ${section === "fortalecimentos" ? "rgba(249,115,22,0.6)" : "rgba(249,115,22,0.25)"}`,
+          }}
+        >
+          <div style={{ fontSize: 20, marginBottom: 4 }}>💪</div>
+          <div style={{ color: "#f97316", fontWeight: 800, fontSize: 13 }}>Fortalecimentos</div>
+        </button>
+
+        <button
           onClick={() => setSection("plano")}
           className="relative rounded-2xl overflow-hidden flex flex-col justify-end px-3 py-2.5"
           style={{
@@ -425,6 +442,39 @@ export default function AthletePublicPage({ params }: { params: { token: string 
       {section === "extras" && (
         <div className="mb-4">
           <RcpExtrasPanel athleteId={athlete.id} initialExtras={extras} initialChecks={checks} editable={false} />
+        </div>
+      )}
+
+      {section === "fortalecimentos" && (
+        <div className="mb-4">
+          {fortalecimentos.length === 0 && (
+            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
+              Seu coach ainda não adicionou fortalecimentos no seu plano.
+            </div>
+          )}
+          <div className="flex flex-col gap-3">
+            {fortalecimentos.map((f) => (
+              <div key={f.id} className="card p-4">
+                <h3 className="font-extrabold text-[15px] mb-1" style={{ color: "#f97316" }}>{f.titulo}</h3>
+                {f.descricao && (
+                  <p className="text-xs mb-3" style={{ color: "#9a9a9f" }}>{f.descricao}</p>
+                )}
+                <div className="flex flex-col gap-2">
+                  {EX_SLOTS.filter((n) => (f as any)[`ex${n}_mov`]).map((n) => (
+                    <div key={n} className="p-3 rounded-lg" style={{ background: "#101012", border: "1px solid rgba(255,255,255,0.08)" }}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="text-[11px] font-extrabold" style={{ color: "#f97316" }}>{(f as any)[`ex${n}_sr`]}</span>
+                        <span className="text-sm font-semibold" style={{ color: "#f2f2f0" }}>{(f as any)[`ex${n}_mov`]}</span>
+                      </div>
+                      {(f as any)[`ex${n}_rest`] && (
+                        <div className="text-[11px]" style={{ color: "#9a9a9f" }}>REST {(f as any)[`ex${n}_rest`]}</div>
+                      )}
+                    </div>
+                  ))}
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
       )}
 
