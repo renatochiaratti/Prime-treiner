@@ -247,6 +247,21 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         </button>
       </div>
 
+      <button
+        onClick={() => router.push(`/coach/rcp/${athlete.id}`)}
+        className="w-full rounded-2xl flex flex-col items-center justify-center mb-4"
+        style={{
+          height: 106,
+          background: "#0a0a0a",
+          border: "1.5px solid rgba(212,175,55,0.35)",
+        }}
+      >
+        <div style={{ fontSize: 32, fontWeight: 300, letterSpacing: 7, color: "#ffffff" }}>RCP</div>
+        <div style={{ fontSize: 10, fontWeight: 500, letterSpacing: 1.5, color: "#d4af37", marginTop: 6, textTransform: "uppercase" }}>
+          Ressignificar · Começar · Persistir
+        </div>
+      </button>
+
       {section === "objetivos" && (
         <div className="mb-4">
           <ObjetivosCard athleteId={athlete.id} initialObjetivos={objetivos} editable />
