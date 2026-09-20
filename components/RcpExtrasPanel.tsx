@@ -93,35 +93,37 @@ export default function RcpExtrasPanel({
 
   return (
     <div>
-      <div className="grid grid-cols-4 gap-2 mb-4" style={{ gridTemplateColumns: "repeat(4, 1fr)" }}>
+      <div className="grid grid-cols-2 gap-2 mb-4">
         {DIAS.map((d) => {
           const hasText = !!getExtra(d.key)?.texto || !!getExtra(d.key)?.crossfit_texto;
           const status = getStatus(d.key);
+          const isSelected = selectedDia === d.key;
           return (
             <button
               key={d.key}
               onClick={() => setSelectedDia(d.key)}
-              className="relative py-3 rounded-xl text-[12.5px] font-extrabold"
+              className="relative rounded-xl overflow-hidden flex items-stretch"
               style={{
-                background: selectedDia === d.key ? "rgba(34,197,94,0.14)" : "#18191c",
-                color: selectedDia === d.key ? "#22c55e" : hasText ? "#22c55e" : "#9a9a9f",
-                border: `1.5px solid ${selectedDia === d.key ? "rgba(34,197,94,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
+                height: 52,
+                background: isSelected ? "rgba(34,197,94,0.14)" : "#18191c",
+                border: `1.5px solid ${isSelected ? "rgba(34,197,94,0.4)" : hasText ? "rgba(34,197,94,0.35)" : "rgba(255,255,255,0.09)"}`,
               }}
             >
               <span
+                className="flex-1 flex items-center px-3 text-[13px] font-extrabold text-left"
+                style={{ color: isSelected ? "#22c55e" : hasText ? "#22c55e" : "#9a9a9f" }}
+              >
+                {d.label}
+              </span>
+              <span
                 onClick={(e) => toggleStatus(d.key, e)}
-                className="absolute"
                 style={{
-                  top: 5,
-                  right: 5,
-                  width: 10,
-                  height: 10,
-                  borderRadius: "50%",
+                  width: 18,
+                  flexShrink: 0,
                   background: STATUS_COLOR[status],
                   cursor: "pointer",
                 }}
               />
-              {d.label}
             </button>
           );
         })}
@@ -178,9 +180,9 @@ export default function RcpExtrasPanel({
               </div>
             )}
             <div className="flex gap-4 justify-center text-[11px] font-bold mt-3">
-              <span style={{ color: "#22c55e" }}>● Feito</span>
-              <span style={{ color: "#eab308" }}>● Em espera</span>
-              <span style={{ color: "#ef4444" }}>● Não feito</span>
+              <span style={{ color: "#22c55e" }}>■ Feito</span>
+              <span style={{ color: "#eab308" }}>■ Em espera</span>
+              <span style={{ color: "#ef4444" }}>■ Não feito</span>
             </div>
           </div>
         </div>
