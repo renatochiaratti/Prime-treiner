@@ -4,8 +4,9 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { TreinadorTemplate, TreinadorRcpBloco } from "@/lib/types";
+import VideoModal from "@/components/VideoModal";
 
-const SEMANAS = [1, 2, 3];
+const SEMANAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const EMAGRECIMENTO_ITENS = ["Progressão 3x na semana", "Progressão 5x na semana"];
 const EX_SLOTS = [1, 2, 3, 4, 5, 6];
 
@@ -20,6 +21,7 @@ export default function TreinadorPage() {
   const [grupo, setGrupo] = useState<"Superior" | "Inferior">("Superior");
   const [semana, setSemana] = useState(1);
   const [novoFortalecimento, setNovoFortalecimento] = useState("");
+  const [videoSlot, setVideoSlot] = useState<{ f: TreinadorTemplate; n: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -91,16 +93,17 @@ export default function TreinadorPage() {
     );
     if (alvos.length === 0) return;
 
-    const campos = {
+    const campos: Record<string, string> = {
       titulo: template.titulo,
       descricao: template.descricao || "",
-      ex1_sr: template.ex1_sr || "", ex1_mov: template.ex1_mov || "", ex1_rest: template.ex1_rest || "",
-      ex2_sr: template.ex2_sr || "", ex2_mov: template.ex2_mov || "", ex2_rest: template.ex2_rest || "",
-      ex3_sr: template.ex3_sr || "", ex3_mov: template.ex3_mov || "", ex3_rest: template.ex3_rest || "",
-      ex4_sr: template.ex4_sr || "", ex4_mov: template.ex4_mov || "", ex4_rest: template.ex4_rest || "",
-      ex5_sr: template.ex5_sr || "", ex5_mov: template.ex5_mov || "", ex5_rest: template.ex5_rest || "",
-      ex6_sr: template.ex6_sr || "", ex6_mov: template.ex6_mov || "", ex6_rest: template.ex6_rest || "",
     };
+    for (const n of EX_SLOTS) {
+      campos[`ex${n}_sr`] = (template as any)[`ex${n}_sr`] || "";
+      campos[`ex${n}_mov`] = (template as any)[`ex${n}_mov`] || "";
+      campos[`ex${n}_rest`] = (template as any)[`ex${n}_rest`] || "";
+      campos[`ex${n}_video`] = (template as any)[`ex${n}_video`] || "";
+    }
+
     await Promise.all(
       alvos.map(async (a) => {
         const { data: existing } = await supabase
@@ -189,190 +192,4 @@ export default function TreinadorPage() {
       </button>
 
       <div className="flex items-center gap-2 mb-6">
-        <span style={{ fontSize: 28 }}>🗂️</span>
-        <h1 className="text-white font-extrabold text-xl">Treinador · Biblioteca de treinos</h1>
-      </div>
-
-      <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
-        {[
-          { key: "rcp", label: "Protocolo RCP" },
-          { key: "fortalecimentos", label: "Fortalecimentos" },
-          { key: "emagrecimento", label: "Emagrecimento" },
-        ].map((t) => (
-          <button
-            key={t.key}
-            onClick={() => setSecao(t.key as Secao)}
-            className="flex-shrink-0 px-4 py-2.5 text-[13px] font-extrabold rounded-full"
-            style={{
-              background: secao === t.key ? "rgba(212,175,55,0.14)" : "#18191c",
-              color: secao === t.key ? "#d4af37" : "#9a9a9f",
-              border: `1px solid ${secao === t.key ? "rgba(212,175,55,0.35)" : "rgba(255,255,255,0.09)"}`,
-            }}
-          >
-            {t.label}
-          </button>
-        ))}
-      </div>
-
-      {secao === "rcp" && (
-        <div>
-          <div className="flex gap-2 mb-3">
-            {(["Superior", "Inferior"] as const).map((g) => (
-              <button
-                key={g}
-                onClick={() => setGrupo(g)}
-                className="flex-1 py-2.5 rounded-lg text-[13px] font-extrabold"
-                style={{
-                  background: grupo === g ? "rgba(59,130,246,0.14)" : "#18191c",
-                  color: grupo === g ? "#3b82f6" : "#9a9a9f",
-                  border: `1px solid ${grupo === g ? "rgba(59,130,246,0.35)" : "rgba(255,255,255,0.09)"}`,
-                }}
-              >
-                {g}
-              </button>
-            ))}
-          </div>
-
-          <div className="flex gap-2 mb-4">
-            {SEMANAS.map((s) => (
-              <button
-                key={s}
-                onClick={() => setSemana(s)}
-                className="flex-1 py-2.5 rounded-lg text-[13px] font-extrabold"
-                style={{
-                  background: semana === s ? "rgba(212,175,55,0.14)" : "#18191c",
-                  color: semana === s ? "#d4af37" : "#9a9a9f",
-                  border: `1px solid ${semana === s ? "rgba(212,175,55,0.35)" : "rgba(255,255,255,0.09)"}`,
-                }}
-              >
-                Semana {s}
-              </button>
-            ))}
-          </div>
-
-          <div className="mb-2 text-[12.5px] font-extrabold" style={{ color: "#9a9a9f" }}>
-            {grupo} · Semana {semana}
-          </div>
-          {renderBlocoRcp(1)}
-          {renderBlocoRcp(2)}
-        </div>
-      )}
-
-      {secao === "fortalecimentos" && (
-        <div>
-          <div className="flex gap-2 mb-4">
-            <input
-              value={novoFortalecimento}
-              onChange={(e) => setNovoFortalecimento(e.target.value)}
-              placeholder="Nome do fortalecimento novo (ex: Ombro, Core, Posterior)"
-              className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-              style={inputStyle}
-            />
-            <button
-              onClick={addFortalecimento}
-              className="px-4 rounded-lg font-extrabold text-sm"
-              style={{ background: "#d4af37", color: "#1a1400", border: "none" }}
-            >
-              + Adicionar
-            </button>
-          </div>
-
-          <div className="text-[11px] mb-4" style={{ color: "#6c6c72" }}>
-            Escreva o nome do(s) aluno(s) em cada fortalecimento (separados por vírgula) — só eles recebem essa cópia no plano deles. Você ainda pode ajustar individualmente dentro do plano de cada um.
-          </div>
-
-          {fortalecimentos.length === 0 && (
-            <div className="text-center text-sm py-8" style={{ color: "#6c6c72" }}>
-              Nenhum fortalecimento criado ainda. Adiciona o primeiro aí em cima.
-            </div>
-          )}
-
-          <div className="flex flex-col gap-3">
-            {fortalecimentos.map((f) => (
-              <div key={f.id} className="card p-4">
-                <div className="flex items-center justify-between mb-3">
-                  <h3 className="font-extrabold text-[15px]" style={{ color: "#d4af37" }}>{f.titulo}</h3>
-                  <button
-                    onClick={() => removeFortalecimento(f.id)}
-                    className="text-[11px] font-bold"
-                    style={{ color: "#ef4444" }}
-                  >
-                    🗑 Remover
-                  </button>
-                </div>
-
-                <label className="text-[11px] font-bold block mb-1" style={{ color: "#f97316" }}>Alunos (nomes separados por vírgula)</label>
-                <input
-                  defaultValue={f.alunos_alvo || ""}
-                  onBlur={(e) => updateFortalecimentoField(f, "alunos_alvo", e.target.value)}
-                  placeholder="Ex: Thalia, Renato"
-                  className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
-                  style={{ ...inputStyle, border: "1.5px solid rgba(249,115,22,0.4)" }}
-                />
-
-                <input
-                  defaultValue={f.descricao || ""}
-                  onBlur={(e) => updateFortalecimentoField(f, "descricao", e.target.value)}
-                  placeholder="Sobre o que é esse fortalecimento..."
-                  className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
-                  style={inputStyle}
-                />
-
-                <div className="flex flex-col gap-2">
-                  {EX_SLOTS.map((n) => (
-                    <div key={n} className="p-3 rounded-lg" style={{ background: "#101012", border: "1px solid rgba(255,255,255,0.08)" }}>
-                      <div className="flex gap-2 mb-2">
-                        <input
-                          placeholder="Séries x Reps"
-                          defaultValue={(f as any)[`ex${n}_sr`] || ""}
-                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_sr`, e.target.value)}
-                          className="px-2 py-2 rounded-md text-xs text-center flex-shrink-0"
-                          style={{ ...smallInputStyle, width: 96 }}
-                        />
-                        <input
-                          placeholder={`Movimento ${n}`}
-                          defaultValue={(f as any)[`ex${n}_mov`] || ""}
-                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_mov`, e.target.value)}
-                          className="flex-1 px-3 py-2 rounded-md text-sm"
-                          style={inputStyle}
-                        />
-                      </div>
-                      <div className="flex items-center justify-center gap-2">
-                        <span className="text-[11px] font-extrabold" style={{ color: "#9a9a9f" }}>REST</span>
-                        <input
-                          placeholder="0:00"
-                          defaultValue={(f as any)[`ex${n}_rest`] || ""}
-                          onBlur={(e) => updateFortalecimentoField(f, `ex${n}_rest`, e.target.value)}
-                          className="px-2 py-2 rounded-md text-xs text-center"
-                          style={{ ...smallInputStyle, width: 80 }}
-                        />
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              </div>
-            ))}
-          </div>
-        </div>
-      )}
-
-      {secao === "emagrecimento" && (
-        <div className="flex flex-col gap-4">
-          {EMAGRECIMENTO_ITENS.map((titulo) => (
-            <div key={titulo} className="card p-4">
-              <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#d4af37" }}>{titulo}</h3>
-              <textarea
-                defaultValue={getTemplate("emagrecimento", titulo)?.conteudo || ""}
-                onBlur={(e) => saveTemplate("emagrecimento", titulo, e.target.value)}
-                rows={12}
-                placeholder={`Escreva aqui a estrutura pronta de ${titulo}...`}
-                className="w-full px-3 py-2.5 rounded-lg text-sm"
-                style={inputStyle}
-              />
-            </div>
-          ))}
-        </div>
-      )}
-    </div>
-  );
-}
+        
