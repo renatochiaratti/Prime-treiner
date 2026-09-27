@@ -11,6 +11,7 @@ export interface Athlete {
   rcp_ativo: boolean;
   position: number;
   auth_user_id: string | null;
+  rcp_ciclo_inicio: string | null;
 }
 
 export interface Objetivo {
