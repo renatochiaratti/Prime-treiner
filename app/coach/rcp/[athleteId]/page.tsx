@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpExercicios, RcpTreinoBloco } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpTreinoBloco, RcpCustomExercicio } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
 
 const DIAS = [
@@ -17,6 +17,7 @@ const DIAS = [
 ];
 
 const GRUPO_TIPOS = ["superiores1", "superiores2", "superiores3", "inferiores1", "inferiores2", "inferiores3"];
+const CUSTOM_SLOTS = [1, 2, 3, 4];
 
 export default function RcpAthletePage({ params }: { params: { athleteId: string } }) {
   const router = useRouter();
@@ -25,10 +26,10 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [loadRows, setLoadRows] = useState<RcpLoadTracking[]>([]);
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
-  const [exercicios, setExercicios] = useState<RcpExercicios | null>(null);
+  const [customExercicios, setCustomExercicios] = useState<RcpCustomExercicio[]>([]);
   const [blocosMap, setBlocosMap] = useState<Record<string, RcpTreinoBloco>>({});
   const [tab, setTab] = useState<
-    "programa" | "carga" | "avaliacao" | "extras" | "exercicios" | "superiores1" | "superiores2" | "superiores3" | "inferiores1" | "inferiores2" | "inferiores3"
+    "programa" | "carga" | "avaliacao" | "extras" | "superiores1" | "superiores2" | "superiores3" | "inferiores1" | "inferiores2" | "inferiores3"
   >("carga");
 
   useEffect(() => {
@@ -45,8 +46,8 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       const { data: ex } = await supabase.from("rcp_extras").select("*").eq("athlete_id", params.athleteId);
       setExtras((ex as RcpExtra[]) || []);
 
-      const { data: exs } = await supabase.from("rcp_exercicios").select("*").eq("athlete_id", params.athleteId).maybeSingle();
-      setExercicios((exs as RcpExercicios) || null);
+      const { data: ce } = await supabase.from("rcp_custom_exercicios").select("*").eq("athlete_id", params.athleteId);
+      setCustomExercicios((ce as RcpCustomExercicio[]) || []);
 
       const { data: blocos } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).in("tipo", GRUPO_TIPOS);
       const map: Record<string, RcpTreinoBloco> = {};
@@ -76,6 +77,25 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
   function getCarga(exercicio: string, semana: number) {
     return loadRows.find((r) => r.exercicio === exercicio && r.semana === semana)?.carga || "";
+  }
+
+  function getCustomNome(slot: number) {
+    return customExercicios.find((c) => c.slot === slot)?.nome || "";
+  }
+
+  async function saveCustomNome(slot: number, nome: string) {
+    const existing = customExercicios.find((c) => c.slot === slot);
+    if (existing) {
+      setCustomExercicios((prev) => prev.map((c) => (c.id === existing.id ? { ...c, nome } : c)));
+      await supabase.from("rcp_custom_exercicios").update({ nome }).eq("id", existing.id);
+    } else {
+      const { data } = await supabase
+        .from("rcp_custom_exercicios")
+        .insert({ athlete_id: params.athleteId, slot, nome })
+        .select()
+        .single();
+      if (data) setCustomExercicios((prev) => [...prev, data as RcpCustomExercicio]);
+    }
   }
 
   function getAssessment(tipo: "D1" | "D90") {
@@ -113,20 +133,6 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         .select()
         .single();
       if (data) setExtras((prev) => [...prev, data as RcpExtra]);
-    }
-  }
-
-  async function saveExercicio(field: string, value: string) {
-    if (exercicios) {
-      setExercicios({ ...exercicios, [field]: value } as RcpExercicios);
-      await supabase.from("rcp_exercicios").update({ [field]: value }).eq("id", exercicios.id);
-    } else {
-      const { data } = await supabase
-        .from("rcp_exercicios")
-        .insert({ athlete_id: params.athleteId, [field]: value })
-        .select()
-        .single();
-      if (data) setExercicios(data as RcpExercicios);
     }
   }
 
@@ -243,7 +249,6 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
           { key: "carga", label: "Carga Semanal" },
           { key: "avaliacao", label: "Avaliação D1/D90" },
           { key: "programa", label: "Programa (12 sem)" },
-          { key: "exercicios", label: "Exercícios" },
           { key: "extras", label: "Extras" },
           { key: "superiores1", label: "Superiores 1" },
           { key: "superiores2", label: "Superiores 2" },
@@ -268,38 +273,83 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       </div>
 
       {tab === "carga" && (
-        <div className="card overflow-hidden">
-          <div style={{ overflowX: "auto" }}>
-            <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
-              <thead>
-                <tr>
-                  <th className="text-left px-3 py-2 text-[11px] uppercase font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>Exercício</th>
-                  {RCP_WEEKS.map((w) => (
-                    <th key={w.semana} className="text-center px-2 py-2 text-[11px] font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>
-                      S{w.semana}
-                    </th>
-                  ))}
-                </tr>
-              </thead>
-              <tbody>
-                {RCP_EXERCICIOS_CARGA.map((ex, i) => (
-                  <tr key={ex} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
-                    <td className="px-3 py-2 font-bold text-[13.5px]" style={{ color: "#f2f2f0" }}>{ex}</td>
+        <div className="flex flex-col gap-4">
+          <div className="card overflow-hidden">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
+                <thead>
+                  <tr>
+                    <th className="text-left px-3 py-2 text-[11px] uppercase font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>Exercício</th>
                     {RCP_WEEKS.map((w) => (
-                      <td key={w.semana} className="text-center px-1 py-1">
-                        <input
-                          defaultValue={getCarga(ex, w.semana)}
-                          onBlur={(e) => saveCarga(ex, w.semana, e.target.value)}
-                          placeholder="—"
-                          className="text-center font-mono font-bold text-[13px] bg-transparent border-none"
-                          style={{ width: 44, color: "#f2f2f0" }}
-                        />
-                      </td>
+                      <th key={w.semana} className="text-center px-2 py-2 text-[11px] font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>
+                        S{w.semana}
+                      </th>
                     ))}
                   </tr>
-                ))}
-              </tbody>
-            </table>
+                </thead>
+                <tbody>
+                  {RCP_EXERCICIOS_CARGA.map((ex, i) => (
+                    <tr key={ex} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
+                      <td className="px-3 py-2 font-bold text-[13.5px]" style={{ color: "#f2f2f0" }}>{ex}</td>
+                      {RCP_WEEKS.map((w) => (
+                        <td key={w.semana} className="text-center px-1 py-1">
+                          <input
+                            defaultValue={getCarga(ex, w.semana)}
+                            onBlur={(e) => saveCarga(ex, w.semana, e.target.value)}
+                            placeholder="—"
+                            className="text-center font-mono font-bold text-[13px] bg-transparent border-none"
+                            style={{ width: 44, color: "#f2f2f0" }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+          <div className="card overflow-hidden">
+            <div style={{ overflowX: "auto" }}>
+              <table style={{ borderCollapse: "collapse", width: "100%", minWidth: 720 }}>
+                <thead>
+                  <tr>
+                    <th className="text-left px-3 py-2 text-[11px] uppercase font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>Exercício</th>
+                    {RCP_WEEKS.map((w) => (
+                      <th key={w.semana} className="text-center px-2 py-2 text-[11px] font-extrabold" style={{ color: "#6c6c72", background: "#1f2024" }}>
+                        S{w.semana}
+                      </th>
+                    ))}
+                  </tr>
+                </thead>
+                <tbody>
+                  {CUSTOM_SLOTS.map((slot, i) => (
+                    <tr key={slot} style={{ borderTop: i === 0 ? "none" : "1px solid rgba(255,255,255,0.09)" }}>
+                      <td className="px-2 py-2">
+                        <input
+                          defaultValue={getCustomNome(slot)}
+                          onBlur={(e) => saveCustomNome(slot, e.target.value)}
+                          placeholder={`Exercício ${slot}`}
+                          className="w-full bg-transparent border-none font-bold text-[13.5px]"
+                          style={{ color: "#f2f2f0", minWidth: 110 }}
+                        />
+                      </td>
+                      {RCP_WEEKS.map((w) => (
+                        <td key={w.semana} className="text-center px-1 py-1">
+                          <input
+                            defaultValue={getCarga(`custom_${slot}`, w.semana)}
+                            onBlur={(e) => saveCarga(`custom_${slot}`, w.semana, e.target.value)}
+                            placeholder="—"
+                            className="text-center font-mono font-bold text-[13px] bg-transparent border-none"
+                            style={{ width: 44, color: "#f2f2f0" }}
+                          />
+                        </td>
+                      ))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
           </div>
         </div>
       )}
@@ -368,90 +418,6 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
               <div className="text-[12.5px]" style={{ color: "#6c6c72" }}>{w.foco}</div>
             </div>
           ))}
-        </div>
-      )}
-
-      {tab === "exercicios" && (
-        <div className="flex flex-col gap-4">
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 1 · Força</h3>
-            <div className="flex gap-2">
-              <input
-                placeholder="Movimento"
-                defaultValue={exercicios?.b1_movimento || ""}
-                onBlur={(e) => saveExercicio("b1_movimento", e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Peso"
-                defaultValue={exercicios?.b1_peso || ""}
-                onBlur={(e) => saveExercicio("b1_peso", e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm text-center"
-                style={{ ...inputStyle, width: 90 }}
-              />
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(exercicios as any)?.[`b2_mov${i}`] || ""}
-                    onBlur={(e) => saveExercicio(`b2_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(exercicios as any)?.[`b2_peso${i}`] || ""}
-                    onBlur={(e) => saveExercicio(`b2_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
-            <div className="flex flex-col gap-2">
-              {[1, 2, 3, 4].map((i) => (
-                <div key={i} className="flex gap-2">
-                  <input
-                    placeholder={`Movimento ${i}`}
-                    defaultValue={(exercicios as any)?.[`b3_mov${i}`] || ""}
-                    onBlur={(e) => saveExercicio(`b3_mov${i}`, e.target.value)}
-                    className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                    style={inputStyle}
-                  />
-                  <input
-                    placeholder="Peso"
-                    defaultValue={(exercicios as any)?.[`b3_peso${i}`] || ""}
-                    onBlur={(e) => saveExercicio(`b3_peso${i}`, e.target.value)}
-                    className="px-3 py-2.5 rounded-lg text-sm text-center"
-                    style={{ ...inputStyle, width: 90 }}
-                  />
-                </div>
-              ))}
-            </div>
-          </div>
-
-          <div className="card p-4">
-            <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 4 · Atividades extras</h3>
-            <textarea
-              defaultValue={exercicios?.b4_texto || ""}
-              onBlur={(e) => saveExercicio("b4_texto", e.target.value)}
-              rows={6}
-              placeholder="Escreva aqui as atividades extras..."
-              className="w-full px-3 py-2.5 rounded-lg text-sm"
-              style={inputStyle}
-            />
-          </div>
         </div>
       )}
 
