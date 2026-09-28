@@ -245,16 +245,18 @@ export default function TreinadorPage() {
                   border: `1px solid ${semana === s ? "rgba(212,175,55,0.35)" : "rgba(255,255,255,0.09)"}`,
                 }}
               >
-                Semana {s}
+                Mês {s}
               </button>
             ))}
           </div>
 
           <div className="mb-2 text-[12.5px] font-extrabold" style={{ color: "#9a9a9f" }}>
-            {grupo} · Semana {semana}
+            {grupo} · Mês {semana}
           </div>
-          {renderBlocoRcp(1)}
-          {renderBlocoRcp(2)}
+          <div key={`${grupo}-${semana}`}>
+            {renderBlocoRcp(1)}
+            {renderBlocoRcp(2)}
+          </div>
         </div>
       )}
 
