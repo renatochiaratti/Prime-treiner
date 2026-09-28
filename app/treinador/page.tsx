@@ -1,195 +1,281 @@
-"use client";
+export interface Athlete {
+  id: string;
+  coach_id: string;
+  name: string;
+  share_token: string;
+  cycle_start: string;
+  cycle_end: string;
+  created_at: string;
+  rcp_athlete_id: string | null;
+  crossfit_ativo: boolean;
+  rcp_ativo: boolean;
+  position: number;
+  auth_user_id: string | null;
+  rcp_ciclo_inicio: string | null;
+}
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
-import { supabase } from "@/lib/supabaseClient";
-import type { TreinadorTemplate, TreinadorRcpBloco } from "@/lib/types";
-import VideoModal from "@/components/VideoModal";
+export interface Objetivo {
+  id: string;
+  athlete_id: string;
+  text: string;
+  done: boolean;
+  position: number;
+}
 
-const SEMANAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
-const EMAGRECIMENTO_ITENS = ["Progressão 3x na semana", "Progressão 5x na semana"];
-const EX_SLOTS = [1, 2, 3, 4, 5, 6];
+export interface MovementRow {
+  id: string;
+  athlete_id: string;
+  categoria: "levantamentos" | "ginasticas" | "ciclicos" | "benchmarks";
+  grupo: "girls" | "heroes" | null;
+  movimento: string;
+  start_val: string;
+  atual: string;
+  meta: string;
+  video_url: string;
+  position: number;
+}
 
-type Secao = "rcp" | "fortalecimentos" | "emagrecimento";
+export interface ExtraBloco {
+  id: string;
+  athlete_id: string;
+  dia: "seg" | "ter" | "qua" | "qui" | "sex" | "sab" | "dom";
+  titulo: string;
+  observacao: string;
+  position: number;
+}
 
-export default function TreinadorPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [templates, setTemplates] = useState<TreinadorTemplate[]>([]);
-  const [rcpBlocos, setRcpBlocos] = useState<TreinadorRcpBloco[]>([]);
-  const [secao, setSecao] = useState<Secao>("rcp");
-  const [grupo, setGrupo] = useState<"Superior" | "Inferior">("Superior");
-  const [semana, setSemana] = useState(1);
-  const [novoFortalecimento, setNovoFortalecimento] = useState("");
-  const [videoSlot, setVideoSlot] = useState<{ f: TreinadorTemplate; n: number } | null>(null);
+export interface ExtraExercicio {
+  id: string;
+  bloco_id: string;
+  descricao: string;
+  video_url: string;
+  position: number;
+}
 
-  useEffect(() => {
-    (async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) { router.replace("/coach/login"); return; }
+export interface Aula {
+  id: string;
+  athlete_id: string;
+  data: string | null;
+  hora: string | null;
+  status: "marcada" | "dada" | "falta";
+  observacao: string;
+}
 
-      const [{ data: tpl }, { data: rcp }] = await Promise.all([
-        supabase.from("treinador_templates").select("*").order("position", { ascending: true }),
-        supabase.from("treinador_rcp_blocos").select("*"),
-      ]);
-      setTemplates((tpl as TreinadorTemplate[]) || []);
-      setRcpBlocos((rcp as TreinadorRcpBloco[]) || []);
-      setLoading(false);
-    })();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+export interface Mensagem {
+  id: string;
+  athlete_id: string;
+  texto: string;
+  lida: boolean;
+  created_at: string;
+}
 
-  function getTemplate(categoria: string, titulo: string) {
-    return templates.find((t) => t.categoria === categoria && t.titulo === titulo);
-  }
+export interface AulaSlot {
+  dia: string;
+  status: "marcada" | "feita" | "nao_feita";
+}
 
-  async function saveTemplate(categoria: string, titulo: string, conteudo: string) {
-    const existing = getTemplate(categoria, titulo);
-    if (existing) {
-      setTemplates((prev) => prev.map((t) => (t.id === existing.id ? { ...t, conteudo } : t)));
-      await supabase.from("treinador_templates").update({ conteudo }).eq("id", existing.id);
-    } else {
-      const { data } = await supabase
-        .from("treinador_templates")
-        .insert({ categoria, titulo, conteudo, position: 0 })
-        .select()
-        .single();
-      if (data) setTemplates((prev) => [...prev, data as TreinadorTemplate]);
-    }
-  }
+export interface Pagamento {
+  id: string;
+  athlete_id: string;
+  position: number;
+  mes: string;
+  vencimento: string | null;
+  valor: number;
+  status: "pago" | "pendente";
+  aulas: AulaSlot[] | null;
+}
 
-  async function addFortalecimento() {
-    const titulo = novoFortalecimento.trim();
-    if (!titulo) return;
-    const fortalecimentos = templates.filter((t) => t.categoria === "fortalecimento");
-    const { data } = await supabase
-      .from("treinador_templates")
-      .insert({ categoria: "fortalecimento", titulo, conteudo: "", position: fortalecimentos.length })
-      .select()
-      .single();
-    if (data) setTemplates((prev) => [...prev, data as TreinadorTemplate]);
-    setNovoFortalecimento("");
-  }
+export const DAYS: { key: ExtraBloco["dia"]; label: string }[] = [
+  { key: "seg", label: "Segunda" },
+  { key: "ter", label: "Terça" },
+  { key: "qua", label: "Quarta" },
+  { key: "qui", label: "Quinta" },
+  { key: "sex", label: "Sexta" },
+  { key: "sab", label: "Sábado" },
+  { key: "dom", label: "Domingo" },
+];
 
-  async function removeFortalecimento(id: string) {
-    const confirmado = window.confirm("Remover esse fortalecimento da lista? Ele também some do plano dos alunos.");
-    if (!confirmado) return;
-    await supabase.from("athlete_fortalecimentos").delete().eq("template_id", id);
-    await supabase.from("treinador_templates").delete().eq("id", id);
-    setTemplates((prev) => prev.filter((t) => t.id !== id));
-  }
+export interface RcpAthlete {
+  id: string;
+  name: string;
+  grupo_trio: string | null;
+  share_token: string;
+  created_at: string;
+}
 
-  async function broadcastFortalecimento(template: TreinadorTemplate) {
-    const nomes = (template.alunos_alvo || "")
-      .split(",")
-      .map((n) => n.trim().toLowerCase())
-      .filter(Boolean);
-    if (nomes.length === 0) return;
+export interface RcpLoadTracking {
+  id: string;
+  athlete_id: string;
+  exercicio: string;
+  semana: number;
+  carga: string;
+  created_at: string;
+}
 
-    const { data: allAthletes } = await supabase.from("athletes").select("id, name");
-    if (!allAthletes) return;
-    const alvos = (allAthletes as { id: string; name: string }[]).filter((a) =>
-      nomes.includes((a.name || "").trim().toLowerCase())
-    );
-    if (alvos.length === 0) return;
+export interface RcpAssessment {
+  id: string;
+  athlete_id: string;
+  tipo: "D1" | "D90";
+  peso: string;
+  massa_muscular: string;
+  percentual_gordura: string;
+  observacoes: string;
+  created_at: string;
+}
 
-    const campos: Record<string, string> = {
-      titulo: template.titulo,
-      descricao: template.descricao || "",
-    };
-    for (const n of EX_SLOTS) {
-      campos[`ex${n}_sr`] = (template as any)[`ex${n}_sr`] || "";
-      campos[`ex${n}_mov`] = (template as any)[`ex${n}_mov`] || "";
-      campos[`ex${n}_rest`] = (template as any)[`ex${n}_rest`] || "";
-      campos[`ex${n}_video`] = (template as any)[`ex${n}_video`] || "";
-    }
+export interface RcpExtra {
+  id: string;
+  athlete_id: string;
+  dia: string;
+  texto: string;
+  crossfit_texto: string;
+  updated_at: string;
+}
 
-    await Promise.all(
-      alvos.map(async (a) => {
-        const { data: existing } = await supabase
-          .from("athlete_fortalecimentos")
-          .select("id")
-          .eq("athlete_id", a.id)
-          .eq("template_id", template.id)
-          .maybeSingle();
-        if (existing) {
-          await supabase.from("athlete_fortalecimentos").update(campos).eq("id", existing.id);
-        } else {
-          await supabase.from("athlete_fortalecimentos").insert({ athlete_id: a.id, template_id: template.id, ...campos });
-        }
-      })
-    );
-  }
+export interface RcpCheck {
+  id: string;
+  athlete_id: string;
+  dia: string;
+  status: "verde" | "vermelho" | "amarelo";
+  updated_at: string;
+}
 
-  async function updateFortalecimentoField(f: TreinadorTemplate, campo: string, valor: string) {
-    const atualizado = { ...f, [campo]: valor } as TreinadorTemplate;
-    setTemplates((prev) => prev.map((t) => (t.id === f.id ? atualizado : t)));
-    await supabase.from("treinador_templates").update({ [campo]: valor }).eq("id", f.id);
-    await broadcastFortalecimento(atualizado);
-  }
+export interface RcpTreinoBloco {
+  id: string;
+  athlete_id: string;
+  tipo: string;
+  b1_movimento: string;
+  b1_peso: string;
+  b2_mov1: string;
+  b2_peso1: string;
+  b2_mov2: string;
+  b2_peso2: string;
+  b2_mov3: string;
+  b2_peso3: string;
+  b2_mov4: string;
+  b2_peso4: string;
+  b3_mov1: string;
+  b3_peso1: string;
+  b3_mov2: string;
+  b3_peso2: string;
+  b3_mov3: string;
+  b3_peso3: string;
+  b3_mov4: string;
+  b3_peso4: string;
+  b4_texto: string;
+  updated_at: string;
+}
 
-  function getRcpBloco(g: string, s: number) {
-    return rcpBlocos.find((r) => r.grupo === g && r.semana === s);
-  }
+export interface RcpExercicios {
+  id: string;
+  athlete_id: string;
+  b1_movimento: string;
+  b1_peso: string;
+  b2_mov1: string;
+  b2_peso1: string;
+  b2_mov2: string;
+  b2_peso2: string;
+  b2_mov3: string;
+  b2_peso3: string;
+  b2_mov4: string;
+  b2_peso4: string;
+  b3_mov1: string;
+  b3_peso1: string;
+  b3_mov2: string;
+  b3_peso2: string;
+  b3_mov3: string;
+  b3_peso3: string;
+  b3_mov4: string;
+  b3_peso4: string;
+  b4_texto: string;
+  updated_at: string;
+}
 
-  async function saveRcpCampo(g: string, s: number, campo: string, valor: string) {
-    const existing = getRcpBloco(g, s);
-    if (existing) {
-      setRcpBlocos((prev) => prev.map((r) => (r.id === existing.id ? { ...r, [campo]: valor } : r)));
-      await supabase.from("treinador_rcp_blocos").update({ [campo]: valor }).eq("id", existing.id);
-    } else {
-      const { data } = await supabase
-        .from("treinador_rcp_blocos")
-        .insert({ grupo: g, semana: s, [campo]: valor })
-        .select()
-        .single();
-      if (data) setRcpBlocos((prev) => [...prev, data as TreinadorRcpBloco]);
-    }
-  }
+export interface TreinadorTemplate {
+  id: string;
+  coach_id: string | null;
+  categoria: string;
+  titulo: string;
+  conteudo: string;
+  descricao: string;
+  alunos_alvo: string;
+  ex1_sr: string;
+  ex1_mov: string;
+  ex1_rest: string;
+  ex2_sr: string;
+  ex2_mov: string;
+  ex2_rest: string;
+  ex3_sr: string;
+  ex3_mov: string;
+  ex3_rest: string;
+  ex4_sr: string;
+  ex4_mov: string;
+  ex4_rest: string;
+  ex5_sr: string;
+  ex5_mov: string;
+  ex5_rest: string;
+  ex6_sr: string;
+  ex6_mov: string;
+  ex6_rest: string;
+  position: number;
+  created_at: string;
+}
 
-  const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
-  const smallInputStyle = { ...inputStyle, width: 90 };
-  const fortalecimentos = templates.filter((t) => t.categoria === "fortalecimento");
-  const bloco = getRcpBloco(grupo, semana);
+export interface AthleteFortalecimento {
+  id: string;
+  athlete_id: string;
+  template_id: string | null;
+  titulo: string;
+  descricao: string;
+  ex1_sr: string;
+  ex1_mov: string;
+  ex1_rest: string;
+  ex2_sr: string;
+  ex2_mov: string;
+  ex2_rest: string;
+  ex3_sr: string;
+  ex3_mov: string;
+  ex3_rest: string;
+  ex4_sr: string;
+  ex4_mov: string;
+  ex4_rest: string;
+  ex5_sr: string;
+  ex5_mov: string;
+  ex5_rest: string;
+  ex6_sr: string;
+  ex6_mov: string;
+  ex6_rest: string;
+  position: number;
+  updated_at: string;
+}
 
-  if (loading) {
-    return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
-  }
+export interface TreinadorRcpBloco {
+  id: string;
+  grupo: string;
+  semana: number;
+  b1_mov1: string;
+  b1_peso1: string;
+  b1_mov2: string;
+  b1_peso2: string;
+  b1_mov3: string;
+  b1_peso3: string;
+  b1_mov4: string;
+  b1_peso4: string;
+  b2_mov1: string;
+  b2_peso1: string;
+  b2_mov2: string;
+  b2_peso2: string;
+  b2_mov3: string;
+  b2_peso3: string;
+  b2_mov4: string;
+  b2_peso4: string;
+  updated_at: string;
+}
 
-  function renderBlocoRcp(numero: 1 | 2) {
-    const prefixo = `b${numero}`;
-    return (
-      <div className="card p-4 mb-3">
-        <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco {numero}</h3>
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3, 4].map((i) => (
-            <div key={i} className="flex gap-2">
-              <input
-                placeholder={`Movimento ${i}`}
-                defaultValue={(bloco as any)?.[`${prefixo}_mov${i}`] || ""}
-                onBlur={(e) => saveRcpCampo(grupo, semana, `${prefixo}_mov${i}`, e.target.value)}
-                className="flex-1 px-3 py-2.5 rounded-lg text-sm"
-                style={inputStyle}
-              />
-              <input
-                placeholder="Peso"
-                defaultValue={(bloco as any)?.[`${prefixo}_peso${i}`] || ""}
-                onBlur={(e) => saveRcpCampo(grupo, semana, `${prefixo}_peso${i}`, e.target.value)}
-                className="px-3 py-2.5 rounded-lg text-sm text-center"
-                style={{ ...inputStyle, width: 90 }}
-              />
-            </div>
-          ))}
-        </div>
-      </div>
-    );
-  }
-
-  return (
-    <div className="app-shell px-5 py-5" style={{ paddingBottom: 60 }}>
-      <button onClick={() => router.push("/coach/dashboard")} className="text-xs font-bold mb-3" style={{ color: "#6c6c72" }}>
-        ‹ Voltar
-      </button>
-
-      <div className="flex items-center gap-2 mb-6">
-        
+export interface RcpCustomExercicio {
+  id: string;
+  athlete_id: string;
+  slot: number;
+  nome: string;
+  updated_at: string;
+}
