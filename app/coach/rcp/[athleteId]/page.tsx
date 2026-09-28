@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpTreinoBloco, RcpCustomExercicio } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpTreinoBloco, RcpCustomExercicio, TreinadorRcpBloco } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
 
 const DIAS = [
@@ -16,7 +16,7 @@ const DIAS = [
   { key: "dom", label: "Domingo" },
 ];
 
-const GRUPO_TIPOS = ["superiores1", "superiores2", "superiores3", "inferiores1", "inferiores2", "inferiores3"];
+const GRUPO_TIPOS = ["superiores1", "inferiores1"];
 const CUSTOM_SLOTS = [1, 2, 3, 4];
 
 export default function RcpAthletePage({ params }: { params: { athleteId: string } }) {
@@ -29,7 +29,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [customExercicios, setCustomExercicios] = useState<RcpCustomExercicio[]>([]);
   const [blocosMap, setBlocosMap] = useState<Record<string, RcpTreinoBloco>>({});
   const [tab, setTab] = useState<
-    "programa" | "carga" | "avaliacao" | "extras" | "superiores1" | "superiores2" | "superiores3" | "inferiores1" | "inferiores2" | "inferiores3"
+    "programa" | "carga" | "avaliacao" | "extras" | "superiores1" | "inferiores1"
   >("carga");
 
   useEffect(() => {
@@ -154,6 +154,58 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
   const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
 
+  function computeSemanaAtual(inicio: string | null | undefined): number {
+    if (!inicio) return 1;
+    const start = new Date(inicio + "T00:00:00");
+    const hoje = new Date();
+    const diffDias = Math.floor((hoje.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
+    const semana = Math.floor(diffDias / 7) + 1;
+    return Math.min(12, Math.max(1, semana));
+  }
+
+  async function autoPreencherSemana(dataInicio: string) {
+    const semana = computeSemanaAtual(dataInicio);
+    const { data: blocos } = await supabase
+      .from("treinador_rcp_blocos")
+      .select("*")
+      .in("grupo", ["Superior", "Inferior"])
+      .eq("semana", semana);
+    if (!blocos) return;
+
+    for (const b of blocos as TreinadorRcpBloco[]) {
+      const tipo = b.grupo === "Superior" ? "superiores1" : "inferiores1";
+      const campos = {
+        b2_mov1: b.b1_mov1 || "", b2_peso1: b.b1_peso1 || "",
+        b2_mov2: b.b1_mov2 || "", b2_peso2: b.b1_peso2 || "",
+        b2_mov3: b.b1_mov3 || "", b2_peso3: b.b1_peso3 || "",
+        b2_mov4: b.b1_mov4 || "", b2_peso4: b.b1_peso4 || "",
+        b3_mov1: b.b2_mov1 || "", b3_peso1: b.b2_peso1 || "",
+        b3_mov2: b.b2_mov2 || "", b3_peso2: b.b2_peso2 || "",
+        b3_mov3: b.b2_mov3 || "", b3_peso3: b.b2_peso3 || "",
+        b3_mov4: b.b2_mov4 || "", b3_peso4: b.b2_peso4 || "",
+      };
+      const current = blocosMap[tipo];
+      if (current) {
+        const updated = { ...current, ...campos } as RcpTreinoBloco;
+        setBlocosMap((prev) => ({ ...prev, [tipo]: updated }));
+        await supabase.from("rcp_treino_blocos").update(campos).eq("id", current.id);
+      } else {
+        const { data } = await supabase
+          .from("rcp_treino_blocos")
+          .insert({ athlete_id: params.athleteId, tipo, ...campos })
+          .select()
+          .single();
+        if (data) setBlocosMap((prev) => ({ ...prev, [tipo]: data as RcpTreinoBloco }));
+      }
+    }
+  }
+
+  async function saveCicloInicio(dataStr: string) {
+    setAthlete((prev) => (prev ? { ...prev, rcp_ciclo_inicio: dataStr } : prev));
+    await supabase.from("athletes").update({ rcp_ciclo_inicio: dataStr || null }).eq("id", params.athleteId);
+    if (dataStr) await autoPreencherSemana(dataStr);
+  }
+
   if (loading || !athlete) {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
@@ -239,9 +291,27 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         ‹ Voltar pro perfil
       </button>
 
-      <div className="flex items-center gap-2 mb-6">
+      <div className="flex items-center gap-2 mb-4">
         <span style={{ fontSize: 30 }}>👑</span>
         <h1 className="text-white font-extrabold text-xl">Método RCP · {athlete.name}</h1>
+      </div>
+
+      <div className="card p-4 mb-5" style={{ border: "1.5px solid rgba(212,175,55,0.35)" }}>
+        <label className="text-[11px] font-bold block mb-1" style={{ color: "#d4af37" }}>
+          Data de início do ciclo (Semana 1)
+        </label>
+        <input
+          type="date"
+          defaultValue={athlete.rcp_ciclo_inicio || ""}
+          onBlur={(e) => saveCicloInicio(e.target.value)}
+          className="px-3 py-2.5 rounded-lg text-sm font-bold mb-2"
+          style={inputStyle}
+        />
+        {athlete.rcp_ciclo_inicio && (
+          <div className="text-[12px]" style={{ color: "#9a9a9f" }}>
+            Semana atual: <b style={{ color: "#22c55e" }}>{computeSemanaAtual(athlete.rcp_ciclo_inicio)}</b> — abas Superiores e Inferiores preenchidas automaticamente com essa semana da biblioteca.
+          </div>
+        )}
       </div>
 
       <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
@@ -250,12 +320,8 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
           { key: "avaliacao", label: "Avaliação D1/D90" },
           { key: "programa", label: "Programa (12 sem)" },
           { key: "extras", label: "Extras" },
-          { key: "superiores1", label: "Superiores 1" },
-          { key: "superiores2", label: "Superiores 2" },
-          { key: "superiores3", label: "Superiores 3" },
-          { key: "inferiores1", label: "Inferiores 1" },
-          { key: "inferiores2", label: "Inferiores 2" },
-          { key: "inferiores3", label: "Inferiores 3" },
+          { key: "superiores1", label: "Superiores" },
+          { key: "inferiores1", label: "Inferiores" },
         ].map((t) => (
           <button
             key={t.key}
@@ -440,11 +506,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       )}
 
       {tab === "superiores1" && renderGrupoBlocos("superiores1")}
-      {tab === "superiores2" && renderGrupoBlocos("superiores2")}
-      {tab === "superiores3" && renderGrupoBlocos("superiores3")}
       {tab === "inferiores1" && renderGrupoBlocos("inferiores1")}
-      {tab === "inferiores2" && renderGrupoBlocos("inferiores2")}
-      {tab === "inferiores3" && renderGrupoBlocos("inferiores3")}
     </div>
   );
 }
