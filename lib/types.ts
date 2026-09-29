@@ -291,3 +291,13 @@ export interface RcpCustomExercicio {
   nome: string;
   updated_at: string;
 }
+
+export interface RcpEspecifico {
+  id: string;
+  athlete_id: string;
+  slot: number;
+  reps: string;
+  movimento: string;
+  rest: string;
+  updated_at: string;
+}
