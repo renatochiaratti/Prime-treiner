@@ -3,7 +3,7 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpTreinoBloco, RcpCustomExercicio, TreinadorRcpBloco } from "@/lib/types";
+import type { Athlete, RcpLoadTracking, RcpAssessment, RcpExtra, RcpTreinoBloco, RcpCustomExercicio, RcpEspecifico, TreinadorRcpBloco } from "@/lib/types";
 import { RCP_WEEKS, RCP_EXERCICIOS_CARGA } from "@/lib/rcpProgram";
 
 const DIAS = [
@@ -18,6 +18,7 @@ const DIAS = [
 
 const GRUPO_TIPOS = ["superiores1", "inferiores1"];
 const CUSTOM_SLOTS = [1, 2, 3, 4];
+const ESPECIFICO_SLOTS = [1, 2, 3, 4, 5, 6, 7];
 
 export default function RcpAthletePage({ params }: { params: { athleteId: string } }) {
   const router = useRouter();
@@ -27,9 +28,10 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
   const [assessments, setAssessments] = useState<RcpAssessment[]>([]);
   const [extras, setExtras] = useState<RcpExtra[]>([]);
   const [customExercicios, setCustomExercicios] = useState<RcpCustomExercicio[]>([]);
+  const [especificos, setEspecificos] = useState<RcpEspecifico[]>([]);
   const [blocosMap, setBlocosMap] = useState<Record<string, RcpTreinoBloco>>({});
   const [tab, setTab] = useState<
-    "programa" | "carga" | "avaliacao" | "extras" | "superiores1" | "inferiores1"
+    "programa" | "carga" | "avaliacao" | "extras" | "superiores1" | "inferiores1" | "especifico"
   >("carga");
 
   useEffect(() => {
@@ -48,6 +50,9 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
       const { data: ce } = await supabase.from("rcp_custom_exercicios").select("*").eq("athlete_id", params.athleteId);
       setCustomExercicios((ce as RcpCustomExercicio[]) || []);
+
+      const { data: esp } = await supabase.from("rcp_especifico").select("*").eq("athlete_id", params.athleteId);
+      setEspecificos((esp as RcpEspecifico[]) || []);
 
       const { data: blocos } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).in("tipo", GRUPO_TIPOS);
       const map: Record<string, RcpTreinoBloco> = {};
@@ -149,6 +154,25 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         .select()
         .single();
       if (data) setBlocosMap((prev) => ({ ...prev, [tipo]: data as RcpTreinoBloco }));
+    }
+  }
+
+  function getEspecifico(slot: number) {
+    return especificos.find((e) => e.slot === slot);
+  }
+
+  async function saveEspecifico(slot: number, campo: "reps" | "movimento" | "rest", valor: string) {
+    const existing = getEspecifico(slot);
+    if (existing) {
+      setEspecificos((prev) => prev.map((e) => (e.id === existing.id ? { ...e, [campo]: valor } : e)));
+      await supabase.from("rcp_especifico").update({ [campo]: valor }).eq("id", existing.id);
+    } else {
+      const { data } = await supabase
+        .from("rcp_especifico")
+        .insert({ athlete_id: params.athleteId, slot, [campo]: valor })
+        .select()
+        .single();
+      if (data) setEspecificos((prev) => [...prev, data as RcpEspecifico]);
     }
   }
 
@@ -322,6 +346,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
           { key: "extras", label: "Extras" },
           { key: "superiores1", label: "Superiores" },
           { key: "inferiores1", label: "Inferiores" },
+          { key: "especifico", label: "Específico" },
         ].map((t) => (
           <button
             key={t.key}
@@ -507,6 +532,46 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
       {tab === "superiores1" && renderGrupoBlocos("superiores1")}
       {tab === "inferiores1" && renderGrupoBlocos("inferiores1")}
+
+      {tab === "especifico" && (
+        <div className="card p-4">
+          <div className="flex flex-col gap-2">
+            {ESPECIFICO_SLOTS.map((slot) => {
+              const e = getEspecifico(slot);
+              return (
+                <div key={slot} className="p-3 rounded-lg" style={{ background: "#101012", border: "1px solid rgba(255,255,255,0.08)" }}>
+                  <div className="flex gap-2 mb-2">
+                    <input
+                      placeholder="Reps"
+                      defaultValue={e?.reps || ""}
+                      onBlur={(ev) => saveEspecifico(slot, "reps", ev.target.value)}
+                      className="px-2 py-2 rounded-md text-xs text-center flex-shrink-0"
+                      style={{ ...inputStyle, width: 80 }}
+                    />
+                    <input
+                      placeholder={`Movimento ${slot}`}
+                      defaultValue={e?.movimento || ""}
+                      onBlur={(ev) => saveEspecifico(slot, "movimento", ev.target.value)}
+                      className="flex-1 px-3 py-2 rounded-md text-sm"
+                      style={inputStyle}
+                    />
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <span className="text-[11px] font-extrabold" style={{ color: "#9a9a9f" }}>REST</span>
+                    <input
+                      placeholder="0:00"
+                      defaultValue={e?.rest || ""}
+                      onBlur={(ev) => saveEspecifico(slot, "rest", ev.target.value)}
+                      className="px-2 py-2 rounded-md text-xs text-center"
+                      style={{ ...inputStyle, width: 80 }}
+                    />
+                  </div>
+                </div>
+              );
+            })}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
