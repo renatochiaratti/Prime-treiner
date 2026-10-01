@@ -153,13 +153,43 @@ export default function TreinadorPage() {
     return <div className="app-shell flex items-center justify-center" style={{ minHeight: "100vh", color: "#9a9a9f" }}>Carregando...</div>;
   }
 
+  function formatRestTime(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, digits.length - 2)}:${digits.slice(-2)}`;
+  }
+
+  function renderBlocoForca() {
+    return (
+      <div className="card p-4 mb-3">
+        <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco de Força</h3>
+        <div className="flex gap-2">
+          <input
+            placeholder="Movimento"
+            defaultValue={(bloco as any)?.bf_movimento || ""}
+            onBlur={(e) => saveRcpCampo(grupo, semana, "bf_movimento", e.target.value)}
+            className="flex-1 px-3 py-2.5 rounded-lg text-sm"
+            style={inputStyle}
+          />
+          <input
+            placeholder="Peso"
+            defaultValue={(bloco as any)?.bf_peso || ""}
+            onBlur={(e) => saveRcpCampo(grupo, semana, "bf_peso", e.target.value)}
+            className="px-3 py-2.5 rounded-lg text-sm text-center"
+            style={{ ...inputStyle, width: 90 }}
+          />
+        </div>
+      </div>
+    );
+  }
+
   function renderBlocoRcp(numero: 1 | 2) {
     const prefixo = `b${numero}`;
     return (
       <div className="card p-4 mb-3">
         <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco {numero}</h3>
-        <div className="flex flex-col gap-2">
-          {[1, 2, 3, 4].map((i) => (
+        <div className="flex flex-col gap-2 mb-3">
+          {[1, 2, 3, 4, 5].map((i) => (
             <div key={i} className="flex gap-2">
               <input
                 placeholder={`Movimento ${i}`}
@@ -177,6 +207,17 @@ export default function TreinadorPage() {
               />
             </div>
           ))}
+        </div>
+        <div className="flex items-center justify-center gap-2">
+          <span className="text-[11px] font-extrabold" style={{ color: "#ef4444" }}>Rest</span>
+          <input
+            placeholder="0:00"
+            defaultValue={(bloco as any)?.[`${prefixo}_rest`] || ""}
+            onChange={(e) => { e.target.value = formatRestTime(e.target.value); }}
+            onBlur={(e) => saveRcpCampo(grupo, semana, `${prefixo}_rest`, e.target.value)}
+            className="px-3 py-2 rounded-lg text-sm font-bold text-center"
+            style={{ ...inputStyle, width: 90, color: "#ef4444" }}
+          />
         </div>
       </div>
     );
@@ -254,6 +295,7 @@ export default function TreinadorPage() {
             {grupo} · Mês {semana}
           </div>
           <div key={`${grupo}-${semana}`}>
+            {renderBlocoForca()}
             {renderBlocoRcp(1)}
             {renderBlocoRcp(2)}
           </div>
