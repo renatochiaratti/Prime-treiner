@@ -154,6 +154,9 @@ export interface RcpTreinoBloco {
   b2_peso3: string;
   b2_mov4: string;
   b2_peso4: string;
+  b2_mov5: string;
+  b2_peso5: string;
+  b2_rest: string;
   b3_mov1: string;
   b3_peso1: string;
   b3_mov2: string;
@@ -162,6 +165,9 @@ export interface RcpTreinoBloco {
   b3_peso3: string;
   b3_mov4: string;
   b3_peso4: string;
+  b3_mov5: string;
+  b3_peso5: string;
+  b3_rest: string;
   b4_texto: string;
   updated_at: string;
 }
@@ -265,6 +271,8 @@ export interface TreinadorRcpBloco {
   id: string;
   grupo: string;
   semana: number;
+  bf_movimento: string;
+  bf_peso: string;
   b1_mov1: string;
   b1_peso1: string;
   b1_mov2: string;
@@ -273,6 +281,9 @@ export interface TreinadorRcpBloco {
   b1_peso3: string;
   b1_mov4: string;
   b1_peso4: string;
+  b1_mov5: string;
+  b1_peso5: string;
+  b1_rest: string;
   b2_mov1: string;
   b2_peso1: string;
   b2_mov2: string;
@@ -281,6 +292,9 @@ export interface TreinadorRcpBloco {
   b2_peso3: string;
   b2_mov4: string;
   b2_peso4: string;
+  b2_mov5: string;
+  b2_peso5: string;
+  b2_rest: string;
   updated_at: string;
 }
 
