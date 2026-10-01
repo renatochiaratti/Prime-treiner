@@ -55,10 +55,13 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
       setEspecificos((esp as RcpEspecifico[]) || []);
 
       const { data: blocos } = await supabase.from("rcp_treino_blocos").select("*").eq("athlete_id", params.athleteId).in("tipo", GRUPO_TIPOS);
-      const map: Record<string, RcpTreinoBloco> = {};
+      let map: Record<string, RcpTreinoBloco> = {};
       ((blocos as RcpTreinoBloco[]) || []).forEach((b) => {
         map[b.tipo] = b;
       });
+      if (a?.rcp_ciclo_inicio) {
+        map = await applyAutoFillToMap(a.rcp_ciclo_inicio, map);
+      }
       setBlocosMap(map);
 
       setLoading(false);
@@ -189,19 +192,20 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     const start = new Date(inicio + "T00:00:00");
     const hoje = new Date();
     const diffDias = Math.floor((hoje.getTime() - start.getTime()) / (1000 * 60 * 60 * 24));
-    const semana = Math.floor(diffDias / 7) + 1;
-    return Math.min(12, Math.max(1, semana));
+    const mes = Math.floor(diffDias / 28) + 1;
+    return Math.min(12, Math.max(1, mes));
   }
 
-  async function autoPreencherSemana(dataInicio: string) {
-    const semana = computeSemanaAtual(dataInicio);
+  async function applyAutoFillToMap(dataInicio: string, mapIn: Record<string, RcpTreinoBloco>) {
+    const mes = computeSemanaAtual(dataInicio);
     const { data: blocos } = await supabase
       .from("treinador_rcp_blocos")
       .select("*")
       .in("grupo", ["Superior", "Inferior"])
-      .eq("semana", semana);
-    if (!blocos) return;
+      .eq("semana", mes);
+    if (!blocos) return mapIn;
 
+    const updatedMap = { ...mapIn };
     for (const b of blocos as TreinadorRcpBloco[]) {
       const tipo = b.grupo === "Superior" ? "superiores1" : "inferiores1";
       const campos = {
@@ -219,26 +223,29 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         b3_mov5: b.b2_mov5 || "", b3_peso5: b.b2_peso5 || "",
         b3_rest: b.b2_rest || "",
       };
-      const current = blocosMap[tipo];
+      const current = updatedMap[tipo];
       if (current) {
-        const updated = { ...current, ...campos } as RcpTreinoBloco;
-        setBlocosMap((prev) => ({ ...prev, [tipo]: updated }));
         await supabase.from("rcp_treino_blocos").update(campos).eq("id", current.id);
+        updatedMap[tipo] = { ...current, ...campos } as RcpTreinoBloco;
       } else {
         const { data } = await supabase
           .from("rcp_treino_blocos")
           .insert({ athlete_id: params.athleteId, tipo, ...campos })
           .select()
           .single();
-        if (data) setBlocosMap((prev) => ({ ...prev, [tipo]: data as RcpTreinoBloco }));
+        if (data) updatedMap[tipo] = data as RcpTreinoBloco;
       }
     }
+    return updatedMap;
   }
 
   async function saveCicloInicio(dataStr: string) {
     setAthlete((prev) => (prev ? { ...prev, rcp_ciclo_inicio: dataStr } : prev));
     await supabase.from("athletes").update({ rcp_ciclo_inicio: dataStr || null }).eq("id", params.athleteId);
-    if (dataStr) await autoPreencherSemana(dataStr);
+    if (dataStr) {
+      const filled = await applyAutoFillToMap(dataStr, blocosMap);
+      setBlocosMap(filled);
+    }
   }
 
   if (loading || !athlete) {
@@ -366,7 +373,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         />
         {athlete.rcp_ciclo_inicio && (
           <div className="text-[12px]" style={{ color: "#9a9a9f" }}>
-            Semana atual: <b style={{ color: "#22c55e" }}>{computeSemanaAtual(athlete.rcp_ciclo_inicio)}</b> — abas Superiores e Inferiores (Bloco de Força, Bloco 2 e Bloco 3) preenchidas automaticamente com essa semana da biblioteca.
+            Mês atual: <b style={{ color: "#22c55e" }}>{computeSemanaAtual(athlete.rcp_ciclo_inicio)}</b> — abas Superiores e Inferiores (Bloco de Força, Bloco 2 e Bloco 3) preenchidas e atualizadas automaticamente a cada mês, com base nessa data.
           </div>
         )}
       </div>
