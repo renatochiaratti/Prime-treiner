@@ -178,6 +178,12 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
   const inputStyle = { background: "#0d0d0d", border: "1.5px solid rgba(255,255,255,0.16)", color: "#f2f2f0" };
 
+  function formatRestTime(raw: string) {
+    const digits = raw.replace(/\D/g, "").slice(0, 4);
+    if (digits.length <= 2) return digits;
+    return `${digits.slice(0, digits.length - 2)}:${digits.slice(-2)}`;
+  }
+
   function computeSemanaAtual(inicio: string | null | undefined): number {
     if (!inicio) return 1;
     const start = new Date(inicio + "T00:00:00");
@@ -199,14 +205,19 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
     for (const b of blocos as TreinadorRcpBloco[]) {
       const tipo = b.grupo === "Superior" ? "superiores1" : "inferiores1";
       const campos = {
+        b1_movimento: b.bf_movimento || "", b1_peso: b.bf_peso || "",
         b2_mov1: b.b1_mov1 || "", b2_peso1: b.b1_peso1 || "",
         b2_mov2: b.b1_mov2 || "", b2_peso2: b.b1_peso2 || "",
         b2_mov3: b.b1_mov3 || "", b2_peso3: b.b1_peso3 || "",
         b2_mov4: b.b1_mov4 || "", b2_peso4: b.b1_peso4 || "",
+        b2_mov5: b.b1_mov5 || "", b2_peso5: b.b1_peso5 || "",
+        b2_rest: b.b1_rest || "",
         b3_mov1: b.b2_mov1 || "", b3_peso1: b.b2_peso1 || "",
         b3_mov2: b.b2_mov2 || "", b3_peso2: b.b2_peso2 || "",
         b3_mov3: b.b2_mov3 || "", b3_peso3: b.b2_peso3 || "",
         b3_mov4: b.b2_mov4 || "", b3_peso4: b.b2_peso4 || "",
+        b3_mov5: b.b2_mov5 || "", b3_peso5: b.b2_peso5 || "",
+        b3_rest: b.b2_rest || "",
       };
       const current = blocosMap[tipo];
       if (current) {
@@ -260,8 +271,8 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
 
         <div className="card p-4">
           <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 2</h3>
-          <div className="flex flex-col gap-2">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="flex flex-col gap-2 mb-3">
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex gap-2">
                 <input
                   placeholder={`Movimento ${i}`}
@@ -280,12 +291,23 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
               </div>
             ))}
           </div>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-[11px] font-extrabold" style={{ color: "#ef4444" }}>Rest</span>
+            <input
+              placeholder="0:00"
+              defaultValue={(b as any)?.b2_rest || ""}
+              onChange={(e) => { e.target.value = formatRestTime(e.target.value); }}
+              onBlur={(e) => saveBloco(tipo, "b2_rest", e.target.value)}
+              className="px-3 py-2 rounded-lg text-sm font-bold text-center"
+              style={{ ...inputStyle, width: 90, color: "#ef4444" }}
+            />
+          </div>
         </div>
 
         <div className="card p-4">
           <h3 className="font-extrabold text-[14px] mb-3" style={{ color: "#ccff00" }}>Bloco 3</h3>
-          <div className="flex flex-col gap-2">
-            {[1, 2, 3, 4].map((i) => (
+          <div className="flex flex-col gap-2 mb-3">
+            {[1, 2, 3, 4, 5].map((i) => (
               <div key={i} className="flex gap-2">
                 <input
                   placeholder={`Movimento ${i}`}
@@ -303,6 +325,17 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
                 />
               </div>
             ))}
+          </div>
+          <div className="flex items-center justify-center gap-2">
+            <span className="text-[11px] font-extrabold" style={{ color: "#ef4444" }}>Rest</span>
+            <input
+              placeholder="0:00"
+              defaultValue={(b as any)?.b3_rest || ""}
+              onChange={(e) => { e.target.value = formatRestTime(e.target.value); }}
+              onBlur={(e) => saveBloco(tipo, "b3_rest", e.target.value)}
+              className="px-3 py-2 rounded-lg text-sm font-bold text-center"
+              style={{ ...inputStyle, width: 90, color: "#ef4444" }}
+            />
           </div>
         </div>
       </div>
@@ -333,7 +366,7 @@ export default function RcpAthletePage({ params }: { params: { athleteId: string
         />
         {athlete.rcp_ciclo_inicio && (
           <div className="text-[12px]" style={{ color: "#9a9a9f" }}>
-            Semana atual: <b style={{ color: "#22c55e" }}>{computeSemanaAtual(athlete.rcp_ciclo_inicio)}</b> — abas Superiores e Inferiores preenchidas automaticamente com essa semana da biblioteca.
+            Semana atual: <b style={{ color: "#22c55e" }}>{computeSemanaAtual(athlete.rcp_ciclo_inicio)}</b> — abas Superiores e Inferiores (Bloco de Força, Bloco 2 e Bloco 3) preenchidas automaticamente com essa semana da biblioteca.
           </div>
         )}
       </div>
