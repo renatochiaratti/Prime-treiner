@@ -30,7 +30,7 @@ function textoAluno(dias: number) {
   if (dias === 1) return "Heeeey, passando pra lembrar que seu plano vence amanhã 💛";
   if (dias === 0) return "Heeeey, passando pra lembrar que seu plano vence hoje 💛";
   const atraso = Math.abs(dias);
-  return `Heeeey, seu plano venceu há ${atraso} ${atraso === 1 ? "dia" : "dias"}. Bora regularizar? 💛`;
+  return `Olá, seu plano venceu há ${atraso} ${atraso === 1 ? "dia" : "dias"}. 💛`;
 }
 
 function textoCoach(nome: string, dias: number) {
