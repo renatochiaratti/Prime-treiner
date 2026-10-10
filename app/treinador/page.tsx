@@ -4,6 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
 import type { TreinadorTemplate, TreinadorRcpBloco } from "@/lib/types";
+import VideoModal from "@/components/VideoModal";
 
 const SEMANAS = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12];
 const EMAGRECIMENTO_ITENS = ["Progressão 3x na semana", "Progressão 5x na semana"];
@@ -20,6 +21,7 @@ export default function TreinadorPage() {
   const [grupo, setGrupo] = useState<"Superior" | "Inferior">("Superior");
   const [semana, setSemana] = useState(1);
   const [novoFortalecimento, setNovoFortalecimento] = useState("");
+  const [videoAberto, setVideoAberto] = useState<{ f: TreinadorTemplate; n: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -99,6 +101,7 @@ export default function TreinadorPage() {
       campos[`ex${n}_sr`] = (template as any)[`ex${n}_sr`] || "";
       campos[`ex${n}_mov`] = (template as any)[`ex${n}_mov`] || "";
       campos[`ex${n}_rest`] = (template as any)[`ex${n}_rest`] || "";
+      campos[`ex${n}_video`] = (template as any)[`ex${n}_video`] || "";
     }
 
     await Promise.all(
@@ -237,7 +240,7 @@ export default function TreinadorPage() {
       <div className="flex gap-1.5 mb-5 overflow-x-auto pb-0.5" style={{ borderBottom: "2px solid rgba(255,255,255,0.09)" }}>
         {[
           { key: "rcp", label: "Protocolo RCP" },
-          { key: "fortalecimentos", label: "Fortalecimentos" },
+          { key: "fortalecimentos", label: "Fortalecimento / Mobilidade" },
           { key: "emagrecimento", label: "Emagrecimento" },
         ].map((t) => (
           <button
@@ -381,6 +384,21 @@ export default function TreinadorPage() {
                             className="flex-1 px-3 py-2 rounded-md text-sm"
                             style={inputStyle}
                           />
+                          <button
+                            type="button"
+                            onClick={() => setVideoAberto({ f, n })}
+                            title="Vídeo do movimento"
+                            className="flex-shrink-0 flex items-center justify-center rounded-md"
+                            style={{
+                              width: 36,
+                              height: 36,
+                              fontSize: 16,
+                              background: (f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.14)" : "#1f2024",
+                              border: `1px solid ${(f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.16)"}`,
+                            }}
+                          >
+                            🎥
+                          </button>
                         </div>
                         <div className="flex items-center justify-center gap-2">
                           <span className="text-[11px] font-extrabold" style={{ color: "#9a9a9f" }}>REST</span>
@@ -400,6 +418,16 @@ export default function TreinadorPage() {
             ))}
           </div>
         </div>
+      )}
+
+      {videoAberto && (
+        <VideoModal
+          title={`${videoAberto.f.titulo} · Exercício ${videoAberto.n}`}
+          initialUrl={(videoAberto.f as any)[`ex${videoAberto.n}_video`] || ""}
+          editable
+          onClose={() => setVideoAberto(null)}
+          onSave={(url) => updateFortalecimentoField(videoAberto.f, `ex${videoAberto.n}_video`, url)}
+        />
       )}
 
       {secao === "emagrecimento" && (
