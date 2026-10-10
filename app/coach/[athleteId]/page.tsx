@@ -226,7 +226,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-          <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Extras</div>
+          <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Treinos</div>
         </button>
 
         <button
