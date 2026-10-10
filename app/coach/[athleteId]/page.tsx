@@ -9,6 +9,7 @@ import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
 import PagamentosTable from "@/components/PagamentosTable";
+import VideoModal from "@/components/VideoModal";
 
 const MOV_TABS = [
   { key: "levantamentos", label: "Levantamentos" },
@@ -34,6 +35,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
   const [section, setSection] = useState<Section | null>(null);
   const [movTab, setMovTab] = useState<MovTabKey>("levantamentos");
   const [copiedLink, setCopiedLink] = useState(false);
+  const [videoAberto, setVideoAberto] = useState<{ f: AthleteFortalecimento; n: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -172,7 +174,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-          <div style={{ position: "relative", color: "#f97316", fontWeight: 800, fontSize: 14 }}>Fortalecimentos</div>
+          <div style={{ position: "relative", color: "#f97316", fontWeight: 800, fontSize: 12.5 }}>Fortalecimento / Mobilidade</div>
         </button>
 
         <button
@@ -353,6 +355,21 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
                           className="flex-1 px-3 py-2 rounded-md text-sm"
                           style={inputStyle}
                         />
+                        <button
+                          type="button"
+                          onClick={() => setVideoAberto({ f, n })}
+                          title="Vídeo do movimento"
+                          className="flex-shrink-0 flex items-center justify-center rounded-md"
+                          style={{
+                            width: 36,
+                            height: 36,
+                            fontSize: 16,
+                            background: (f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.14)" : "#1f2024",
+                            border: `1px solid ${(f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.16)"}`,
+                          }}
+                        >
+                          🎥
+                        </button>
                       </div>
                       <div className="flex items-center justify-center gap-2">
                         <span className="text-[11px] font-extrabold" style={{ color: "#9a9a9f" }}>REST</span>
@@ -371,6 +388,16 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
             ))}
           </div>
         </div>
+      )}
+
+      {videoAberto && (
+        <VideoModal
+          title={`${videoAberto.f.titulo} · Exercício ${videoAberto.n}`}
+          initialUrl={(videoAberto.f as any)[`ex${videoAberto.n}_video`] || ""}
+          editable
+          onClose={() => setVideoAberto(null)}
+          onSave={(url) => updateFortalecimentoField(videoAberto.f, `ex${videoAberto.n}_video`, url)}
+        />
       )}
 
       {section === "plano" && (
