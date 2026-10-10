@@ -9,6 +9,7 @@ import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
 import PagamentosTable from "@/components/PagamentosTable";
+import AvisoVencimento from "@/components/AvisoVencimento";
 import VideoModal from "@/components/VideoModal";
 
 const MOV_TABS = [
@@ -249,6 +250,8 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
         </button>
       </div>
 
+      <AvisoVencimento pagamentos={pagamentos} modo="coach" athleteName={athlete.name} />
+
       <button
         onClick={() => router.push(`/coach/rcp/${athlete.id}`)}
         className="w-full rounded-2xl flex flex-col items-center justify-center mb-4"
@@ -402,7 +405,7 @@ export default function AthleteEditorPage({ params }: { params: { athleteId: str
 
       {section === "plano" && (
         <div className="mb-4">
-          <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable />
+          <PagamentosTable initialPagamentos={pagamentos} cycleStart={athlete.cycle_start} cycleEnd={athlete.cycle_end} editable onChange={setPagamentos} />
         </div>
       )}
     </div>
