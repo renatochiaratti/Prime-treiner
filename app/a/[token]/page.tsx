@@ -10,6 +10,7 @@ import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
 import PagamentosTable from "@/components/PagamentosTable";
+import AvisoVencimento from "@/components/AvisoVencimento";
 import VideoModal from "@/components/VideoModal";
 
 const MOV_TABS = [
@@ -385,6 +386,8 @@ export default function AthletePublicPage({ params }: { params: { token: string 
           <div style={{ position: "relative", color: "#2dd4bf", fontWeight: 800, fontSize: 12.5 }}>Meu Plano</div>
         </button>
       </div>
+
+      <AvisoVencimento pagamentos={pagamentos} modo="aluno" />
 
       <button
         onClick={() => router.push(`/a/${athlete.share_token}/rcp`)}
