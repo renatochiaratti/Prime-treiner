@@ -10,6 +10,7 @@ import MovementTable from "@/components/MovementTable";
 import RcpExtrasPanel from "@/components/RcpExtrasPanel";
 import AulasEditor from "@/components/AulasEditor";
 import PagamentosTable from "@/components/PagamentosTable";
+import VideoModal from "@/components/VideoModal";
 
 const MOV_TABS = [
   { key: "levantamentos", label: "Levantamentos" },
@@ -43,6 +44,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   const [fortalecimentos, setFortalecimentos] = useState<AthleteFortalecimento[]>([]);
   const [section, setSection] = useState<Section | null>(null);
   const [movTab, setMovTab] = useState<MovTabKey>("levantamentos");
+  const [videoAberto, setVideoAberto] = useState<{ f: AthleteFortalecimento; n: number } | null>(null);
 
   useEffect(() => {
     (async () => {
@@ -309,7 +311,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-          <div style={{ position: "relative", color: "#f97316", fontWeight: 800, fontSize: 14 }}>Fortalecimentos</div>
+          <div style={{ position: "relative", color: "#f97316", fontWeight: 800, fontSize: 12.5 }}>Fortalecimento / Mobilidade</div>
         </button>
 
         <button
@@ -464,7 +466,22 @@ export default function AthletePublicPage({ params }: { params: { token: string 
                     <div key={n} className="p-3 rounded-lg" style={{ background: "#101012", border: "1px solid rgba(255,255,255,0.08)" }}>
                       <div className="flex items-center gap-2 mb-1">
                         <span className="text-[11px] font-extrabold" style={{ color: "#f97316" }}>{(f as any)[`ex${n}_sr`]}</span>
-                        <span className="text-sm font-semibold" style={{ color: "#f2f2f0" }}>{(f as any)[`ex${n}_mov`]}</span>
+                        <span className="text-sm font-semibold flex-1" style={{ color: "#f2f2f0" }}>{(f as any)[`ex${n}_mov`]}</span>
+                        <button
+                          type="button"
+                          onClick={() => setVideoAberto({ f, n })}
+                          title="Ver vídeo"
+                          className="flex-shrink-0 flex items-center justify-center rounded-md"
+                          style={{
+                            width: 32,
+                            height: 32,
+                            fontSize: 15,
+                            background: (f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.14)" : "#1f2024",
+                            border: `1px solid ${(f as any)[`ex${n}_video`] ? "rgba(34,197,94,0.4)" : "rgba(255,255,255,0.16)"}`,
+                          }}
+                        >
+                          🎥
+                        </button>
                       </div>
                       {(f as any)[`ex${n}_rest`] && (
                         <div className="text-[11px]" style={{ color: "#9a9a9f" }}>REST {(f as any)[`ex${n}_rest`]}</div>
@@ -476,6 +493,16 @@ export default function AthletePublicPage({ params }: { params: { token: string 
             ))}
           </div>
         </div>
+      )}
+
+      {videoAberto && (
+        <VideoModal
+          title={`${videoAberto.f.titulo} · Exercício ${videoAberto.n}`}
+          initialUrl={(videoAberto.f as any)[`ex${videoAberto.n}_video`] || ""}
+          editable={false}
+          onClose={() => setVideoAberto(null)}
+          onSave={() => {}}
+        />
       )}
 
       {section === "plano" && (
