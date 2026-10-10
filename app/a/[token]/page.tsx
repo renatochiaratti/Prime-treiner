@@ -3,7 +3,6 @@
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import { supabase } from "@/lib/supabaseClient";
-import { weekdayName } from "@/lib/movementLibrary";
 import type { Athlete, Objetivo, MovementRow, Aula, Pagamento, RcpExtra, RcpCheck, AthleteFortalecimento } from "@/lib/types";
 import ObjetivosCard from "@/components/ObjetivosCard";
 import MovementTable from "@/components/MovementTable";
@@ -252,8 +251,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
     );
   }
 
-  const proximaAula = aulas.find((a) => a.status === "marcada");
-  const doneObjetivos = objetivos.filter((o) => o.done).length;
   const hoje = new Date();
   hoje.setHours(0, 0, 0, 0);
   const pagamentoAtrasado = pagamentos.some((p) => p.status === "pendente" && p.vencimento && new Date(p.vencimento) < hoje);
@@ -269,15 +266,6 @@ export default function AthletePublicPage({ params }: { params: { token: string 
           style={{ width: 48, height: 48, objectFit: "cover" }}
         />
         <div className="font-extrabold text-[19px] text-white leading-tight">{athlete.name}</div>
-      </div>
-
-      <div className="grid grid-cols-2 gap-2.5 mb-5">
-        <MiniStat label="Objetivos" value={`${doneObjetivos}/${objetivos.length}`} highlight={doneObjetivos > 0} />
-        <MiniStat
-          label={proximaAula?.data ? weekdayName(proximaAula.data) : "Próxima aula"}
-          value={proximaAula?.data ? fmtDate(proximaAula.data) : "—"}
-          highlight
-        />
       </div>
 
       <div className="grid grid-cols-2 gap-2.5 mb-4">
@@ -363,7 +351,7 @@ export default function AthletePublicPage({ params }: { params: { token: string 
             style={{ position: "absolute", inset: 0, width: "100%", height: "100%", objectFit: "cover" }}
           />
           <div style={{ position: "absolute", inset: 0, background: "rgba(0,0,0,0.25)" }} />
-          <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Extras</div>
+          <div style={{ position: "relative", color: "#22c55e", fontWeight: 800, fontSize: 12.5 }}>Treinos</div>
         </button>
 
         <button
@@ -517,25 +505,9 @@ export default function AthletePublicPage({ params }: { params: { token: string 
   );
 }
 
-function fmtDate(iso: string) {
-  const [y, m, d] = iso.split("-");
-  return `${d}/${m}`;
-}
-
 function traduzErro(msg?: string) {
   if (!msg) return "Não deu pra entrar. Tenta de novo.";
   if (msg.includes("Invalid login credentials")) return "E-mail ou senha incorretos.";
   if (msg.includes("Email not confirmed")) return "Essa conta ainda não foi confirmada. Fala com seu coach.";
   return msg;
-}
-
-function MiniStat({ label, value, highlight }: { label: string; value: string; highlight?: boolean }) {
-  return (
-    <div className="card px-3 py-3">
-      <div className="font-extrabold text-xl leading-none mb-1" style={{ color: highlight ? "#d4af37" : "#ffffff" }}>
-        {value}
-      </div>
-      <div className="text-[10.5px] font-extrabold uppercase" style={{ color: "#6c6c72" }}>{label}</div>
-    </div>
-  );
 }
