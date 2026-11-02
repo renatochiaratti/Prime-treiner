@@ -12,6 +12,15 @@ const EX_SLOTS = [1, 2, 3, 4, 5, 6];
 
 type Secao = "rcp" | "fortalecimentos" | "emagrecimento";
 
+function normalizar(texto: string) {
+  return (texto || "")
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .toLowerCase()
+    .replace(/\s+/g, " ")
+    .trim();
+}
+
 export default function TreinadorPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -22,6 +31,7 @@ export default function TreinadorPage() {
   const [semana, setSemana] = useState(1);
   const [novoFortalecimento, setNovoFortalecimento] = useState("");
   const [videoAberto, setVideoAberto] = useState<{ f: TreinadorTemplate; n: number } | null>(null);
+  const [avisos, setAvisos] = useState<Record<string, { ok: boolean; texto: string }>>({});
 
   useEffect(() => {
     (async () => {
@@ -79,19 +89,44 @@ export default function TreinadorPage() {
     setTemplates((prev) => prev.filter((t) => t.id !== id));
   }
 
-  async function broadcastFortalecimento(template: TreinadorTemplate) {
-    const nomes = (template.alunos_alvo || "")
-      .split(",")
-      .map((n) => n.trim().toLowerCase())
-      .filter(Boolean);
-    if (nomes.length === 0) return;
+  function setAviso(id: string, ok: boolean, texto: string) {
+    setAvisos((prev) => ({ ...prev, [id]: { ok, texto } }));
+  }
 
-    const { data: allAthletes } = await supabase.from("athletes").select("id, name");
-    if (!allAthletes) return;
-    const alvos = (allAthletes as { id: string; name: string }[]).filter((a) =>
-      nomes.includes((a.name || "").trim().toLowerCase())
-    );
-    if (alvos.length === 0) return;
+  async function broadcastFortalecimento(template: TreinadorTemplate) {
+    const digitados = (template.alunos_alvo || "")
+      .split(",")
+      .map((n) => n.trim())
+      .filter(Boolean);
+    if (digitados.length === 0) {
+      setAviso(template.id, true, "");
+      return;
+    }
+
+    const { data: allAthletes, error: erroAlunos } = await supabase.from("athletes").select("id, name");
+    if (erroAlunos || !allAthletes) {
+      setAviso(template.id, false, "Não consegui ler a lista de alunos: " + (erroAlunos?.message || "sem resposta"));
+      return;
+    }
+    const lista = allAthletes as { id: string; name: string }[];
+
+    const alvosMap = new Map<string, { id: string; name: string }>();
+    const naoAchados: string[] = [];
+    for (const digitado of digitados) {
+      const d = normalizar(digitado);
+      let achados = lista.filter((a) => normalizar(a.name) === d);
+      if (achados.length === 0) {
+        achados = lista.filter((a) => normalizar(a.name).startsWith(d + " "));
+      }
+      if (achados.length === 0) naoAchados.push(digitado);
+      achados.forEach((a) => alvosMap.set(a.id, a));
+    }
+    const alvos = Array.from(alvosMap.values());
+
+    if (alvos.length === 0) {
+      setAviso(template.id, false, "Nenhum aluno encontrado com: " + naoAchados.join(", "));
+      return;
+    }
 
     const campos: Record<string, string> = {
       titulo: template.titulo,
@@ -104,27 +139,40 @@ export default function TreinadorPage() {
       campos[`ex${n}_video`] = (template as any)[`ex${n}_video`] || "";
     }
 
+    const erros: string[] = [];
     await Promise.all(
       alvos.map(async (a) => {
-        const { data: existing } = await supabase
+        const { data: existing, error: erroBusca } = await supabase
           .from("athlete_fortalecimentos")
           .select("id")
           .eq("athlete_id", a.id)
           .eq("template_id", template.id)
           .maybeSingle();
-        if (existing) {
-          await supabase.from("athlete_fortalecimentos").update(campos).eq("id", existing.id);
-        } else {
-          await supabase.from("athlete_fortalecimentos").insert({ athlete_id: a.id, template_id: template.id, ...campos });
-        }
+        if (erroBusca) { erros.push(erroBusca.message); return; }
+        const resultado = existing
+          ? await supabase.from("athlete_fortalecimentos").update(campos).eq("id", existing.id)
+          : await supabase.from("athlete_fortalecimentos").insert({ athlete_id: a.id, template_id: template.id, ...campos });
+        if (resultado.error) erros.push(resultado.error.message);
       })
     );
+
+    if (erros.length > 0) {
+      setAviso(template.id, false, "Erro ao enviar pro aluno: " + erros[0]);
+      return;
+    }
+    const enviados = alvos.map((a) => a.name).join(", ");
+    const extra = naoAchados.length > 0 ? " · Não achei: " + naoAchados.join(", ") : "";
+    setAviso(template.id, naoAchados.length === 0, "✓ Enviado para: " + enviados + extra);
   }
 
   async function updateFortalecimentoField(f: TreinadorTemplate, campo: string, valor: string) {
     const atualizado = { ...f, [campo]: valor } as TreinadorTemplate;
     setTemplates((prev) => prev.map((t) => (t.id === f.id ? atualizado : t)));
-    await supabase.from("treinador_templates").update({ [campo]: valor }).eq("id", f.id);
+    const { error } = await supabase.from("treinador_templates").update({ [campo]: valor }).eq("id", f.id);
+    if (error) {
+      setAviso(f.id, false, "Erro ao salvar: " + error.message);
+      return;
+    }
     await broadcastFortalecimento(atualizado);
   }
 
@@ -356,6 +404,11 @@ export default function TreinadorPage() {
                   className="w-full px-3 py-2.5 rounded-lg text-sm mb-3"
                   style={{ ...inputStyle, border: "1.5px solid rgba(249,115,22,0.4)" }}
                 />
+                {avisos[f.id]?.texto && (
+                  <div className="text-[11px] font-bold mb-3" style={{ color: avisos[f.id].ok ? "#22c55e" : "#ef4444" }}>
+                    {avisos[f.id].texto}
+                  </div>
+                )}
 
                 <input
                   defaultValue={f.descricao || ""}
