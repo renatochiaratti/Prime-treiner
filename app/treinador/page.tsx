@@ -93,13 +93,23 @@ export default function TreinadorPage() {
     setAvisos((prev) => ({ ...prev, [id]: { ok, texto } }));
   }
 
+  async function removerDosQueSairam(template: TreinadorTemplate, idsManter: string[]) {
+    let consulta = supabase.from("athlete_fortalecimentos").delete().eq("template_id", template.id);
+    if (idsManter.length > 0) {
+      consulta = consulta.not("athlete_id", "in", `(${idsManter.join(",")})`);
+    }
+    const { error } = await consulta;
+    return error ? error.message : null;
+  }
+
   async function broadcastFortalecimento(template: TreinadorTemplate) {
     const digitados = (template.alunos_alvo || "")
       .split(",")
       .map((n) => n.trim())
       .filter(Boolean);
     if (digitados.length === 0) {
-      setAviso(template.id, true, "");
+      const erroRemocao = await removerDosQueSairam(template, []);
+      setAviso(template.id, !erroRemocao, erroRemocao ? "Erro ao remover do aluno: " + erroRemocao : "");
       return;
     }
 
@@ -123,6 +133,8 @@ export default function TreinadorPage() {
     }
     const alvos = Array.from(alvosMap.values());
 
+    const erroRemocao = await removerDosQueSairam(template, alvos.map((a) => a.id));
+
     if (alvos.length === 0) {
       setAviso(template.id, false, "Nenhum aluno encontrado com: " + naoAchados.join(", "));
       return;
@@ -140,6 +152,7 @@ export default function TreinadorPage() {
     }
 
     const erros: string[] = [];
+    if (erroRemocao) erros.push(erroRemocao);
     await Promise.all(
       alvos.map(async (a) => {
         const { data: existing, error: erroBusca } = await supabase
